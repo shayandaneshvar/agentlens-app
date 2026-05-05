@@ -1,0 +1,645 @@
+{
+  "@context": {
+    "@language": "en",
+    "@vocab": "https://schema.org/",
+    "sc": "https://schema.org/",
+    "cr": "http://mlcommons.org/croissant/",
+    "rai": "http://mlcommons.org/croissant/RAI/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "dct": "http://purl.org/dc/terms/",
+    "citeAs": "cr:citeAs",
+    "column": "cr:column",
+    "conformsTo": "dct:conformsTo",
+    "data": {
+      "@id": "cr:data",
+      "@type": "@json"
+    },
+    "dataType": {
+      "@id": "cr:dataType",
+      "@type": "@vocab"
+    },
+    "examples": {
+      "@id": "cr:examples",
+      "@type": "@json"
+    },
+    "extract": "cr:extract",
+    "field": "cr:field",
+    "fileObject": "cr:fileObject",
+    "fileProperty": "cr:fileProperty",
+    "fileSet": "cr:fileSet",
+    "format": "cr:format",
+    "includes": "cr:includes",
+    "isLiveDataset": "cr:isLiveDataset",
+    "jsonPath": "cr:jsonPath",
+    "key": "cr:key",
+    "md5": "cr:md5",
+    "parentField": "cr:parentField",
+    "path": "cr:path",
+    "recordSet": "cr:recordSet",
+    "references": "cr:references",
+    "regex": "cr:regex",
+    "repeated": "cr:repeated",
+    "replace": "cr:replace",
+    "separator": "cr:separator",
+    "source": "cr:source",
+    "subField": "cr:subField",
+    "transform": "cr:transform"
+  },
+  "@type": "sc:Dataset",
+  "name": "AgentLens-Bench",
+  "description": "A benchmark dataset of 1,815 fully-annotated coding agent trajectories across 47 SWE-bench tasks and 8 frontier models, with process-level quality annotations. Features include ground-truth Prefix Tree Automata (PTAs) constructed from merged successful trajectories, multi-dimensional quality scoring (coverage, coherence, workflow similarity, stage completeness), five-category waste detection (regression loops, blind retries, redundant reads, unnecessary exploration, cyclic patterns), quality tier classification (Ideal/Solid/Lucky), and divergence-point localization. This is the first coding agent benchmark providing process-level quality annotations rather than binary pass/fail labels.",
+  "conformsTo": "http://mlcommons.org/croissant/1.1",
+  "url": "https://anonymous.4open.science/r/agentlens-bench/",
+  "license": "https://spdx.org/licenses/CC-BY-4.0.html",
+  "version": "1.0",
+  "datePublished": "2026-05-04",
+  "isLiveDataset": false,
+  "citeAs": "Anonymous Authors. AgentLens-Bench: A Process-Annotated Benchmark for Coding Agent Trajectories. NeurIPS 2026 Evaluations and Datasets Track.",
+  "keywords": [
+    "coding agents",
+    "trajectory analysis",
+    "software engineering",
+    "SWE-bench",
+    "process annotations",
+    "quality assessment",
+    "prefix tree automata",
+    "waste detection",
+    "training data curation"
+  ],
+  "rai:dataLimitations": "The dataset covers 47 SWE-bench tasks filtered to those with at least 5 passing trajectories out of an initial 60 tasks. It includes trajectories from 8 specific frontier LLM models (Claude Sonnet 4.5, Opus 4.5, Opus 4.6; GPT-4o, GPT-4.1, GPT-5.2-codex, GPT-5.3-codex; Gemini 2.5 Pro) evaluated via an IDE-based agent paradigm only. Results may not generalize to other agent architectures (e.g., terminal-only agents, multi-agent systems), other programming languages (SWE-bench is Python-heavy), or other task domains beyond bug-fixing in open-source repositories. Ground-truth PTAs are constructed from k=5 seed trajectories, which may not capture all valid solution strategies. The dataset should not be used as a definitive quality ranking of the included models, as evaluation conditions may vary.",
+  "rai:dataBiases": "Selection bias: tasks are drawn from SWE-bench, which overrepresents well-maintained Python open-source projects (Django, scikit-learn, matplotlib, etc.) and may not reflect the distribution of real-world software engineering tasks. Model selection bias: only frontier models available at the time of collection (early 2026) are included; results may not generalize to future or smaller models. Survivorship bias in ground truth: merged PTAs are built from successful trajectories only, so the ground truth inherently represents strategies that worked, potentially missing valid alternative approaches that happen to fail on SWE-bench's test suites.",
+  "rai:personalSensitiveInformation": "This dataset does not contain personally identifiable information (PII). All trajectories are machine-generated sequences of tool calls and code edits produced by LLM-based coding agents operating on public open-source repositories. No human subjects were involved in trajectory generation. The underlying SWE-bench task descriptions reference public GitHub issues and contributors, which are already publicly available.",
+  "rai:dataUseCases": "Primary use cases: (1) Training data curation for coding agents—selecting high-quality trajectories by quality score to improve agent fine-tuning, eliminating 'lucky' passes that produce correct outcomes via poor processes. (2) Process reward model training—using the 40-column quality annotations as supervision signals. (3) Agent evaluation beyond pass rates—comparing models by process quality metrics. (4) Agent debugging and failure analysis—identifying dominant waste categories per model. (5) Benchmark contamination detection—trajectories with high structural F1 but low coherence on novel tasks signal potential contamination. Not validated for: real-time agent monitoring, non-Python codebases, or production deployment decisions.",
+  "rai:dataSocialImpact": "Positive: enables quality-aware training of coding agents, potentially producing agents that solve problems more efficiently with fewer wasted steps and tokens, reducing computational cost and environmental impact. Supports reproducible agent evaluation research. Risks: the waste detection methodology could theoretically be used to optimize agents for adversarial purposes (e.g., finding efficient paths to introduce vulnerabilities), though the dataset itself contains only benign bug-fixing trajectories on public open-source code. The quality tier labels should not be used to make claims about the absolute capability of specific commercial LLM products.",
+  "rai:hasSyntheticData": false,
+  "prov:wasDerivedFrom": [
+    {
+      "@type": "sc:Dataset",
+      "name": "SWE-bench",
+      "url": "https://www.swebench.com/"
+    }
+  ],
+  "prov:wasGeneratedBy": [
+    {
+      "@type": "prov:Activity",
+      "name": "Trajectory Collection",
+      "description": "Coding agent trajectories were collected by running 8 frontier LLM models on 47 SWE-bench tasks using an IDE-based agent framework. Each model attempted each task 5 times, producing approximately 40 trajectories per task (1,815 total). Trajectories were recorded as structured sequences of tool calls (file reads, edits, terminal commands, searches) with full inputs, outputs, and metadata."
+    },
+    {
+      "@type": "prov:Activity",
+      "name": "PTA Construction and Merging",
+      "description": "Each trajectory was converted into a Prefix Tree Automaton (PTA)—a state machine where each state represents a tool-call observation and resulting codebase state. For each task, 5 passing trajectories (selected with seed=42) were merged into a ground-truth PTA using state equivalence checking (observation hash + resulting state hash matching). The merged PTA captures the canonical solution workflow."
+    },
+    {
+      "@type": "prov:Activity",
+      "name": "Quality Annotation",
+      "description": "Each non-seed trajectory was matched against the merged PTA to compute quality metrics: coverage (% of GT states matched), coherence (forward-progress ratio), workflow similarity (stage-transition LCS), stage completeness, and temporal profile alignment. An overall quality_score (0-100) was computed as a weighted combination. Waste detection identified 5 categories of inefficiency (regression loops, blind retries, redundant reads, unnecessary exploration, cyclic patterns), all GT-aware—patterns present in the reference PTA were excluded. Quality tiers (Ideal/Solid/Lucky for passing; partial_fail/off_track for failing) were assigned based on quality_score thresholds."
+    }
+  ],
+  "distribution": [
+    {
+      "@type": "cr:FileObject",
+      "@id": "dataset-summary",
+      "name": "dataset_summary.json",
+      "description": "Machine-readable dataset summary with configuration parameters, statistics, tier distribution, and curation table.",
+      "contentUrl": "https://raw.githubusercontent.com/GITHUB_USER/agentlens/main/agentlens-bench/dataset_summary.json",
+      "encodingFormat": "application/json",
+      "sc:sha256": "36463ae65a33f7e47f54b761cbed26087cabe5d1cffe1e56b58ad92b71be9ae6"
+    },
+    {
+      "@type": "cr:FileObject",
+      "@id": "tasks-csv",
+      "name": "tasks.csv",
+      "description": "Per-task metadata table with 47 rows: trajectory counts, ground-truth PTA size, and processing time.",
+      "contentUrl": "https://raw.githubusercontent.com/GITHUB_USER/agentlens/main/agentlens-bench/annotations/tasks.csv",
+      "encodingFormat": "text/csv",
+      "sc:sha256": "4bd9127b67b2159f2aee5c0ba46597be72ad626d4b2c0c1af7900d3384ee0a3b"
+    },
+    {
+      "@type": "cr:FileObject",
+      "@id": "tasks-parquet",
+      "name": "tasks.parquet",
+      "description": "Per-task metadata table in Parquet format (same content as tasks.csv).",
+      "contentUrl": "https://raw.githubusercontent.com/GITHUB_USER/agentlens/main/agentlens-bench/annotations/tasks.parquet",
+      "encodingFormat": "application/x-parquet",
+      "sc:sha256": "096aa72c2f89ae44298d419e3d84db49cd0bee6f6a97ea71c04972da32d3c043"
+    },
+    {
+      "@type": "cr:FileObject",
+      "@id": "trajectories-csv",
+      "name": "trajectories.csv",
+      "description": "Main annotation table with 1,815 rows and 40 columns: quality scores, waste detection, divergence analysis, and per-stage coverage for every trajectory.",
+      "contentUrl": "https://raw.githubusercontent.com/GITHUB_USER/agentlens/main/agentlens-bench/annotations/trajectories.csv",
+      "encodingFormat": "text/csv",
+      "sc:sha256": "bef8846c7eacf0da305566b73b6f705a652d178ff6b4f2e852b868d88c0f88e5"
+    },
+    {
+      "@type": "cr:FileObject",
+      "@id": "trajectories-parquet",
+      "name": "trajectories.parquet",
+      "description": "Main annotation table in Parquet format (same content as trajectories.csv).",
+      "contentUrl": "https://raw.githubusercontent.com/GITHUB_USER/agentlens/main/agentlens-bench/annotations/trajectories.parquet",
+      "encodingFormat": "application/x-parquet",
+      "sc:sha256": "6709c1117f241c81835dd2850429e8357a2bb61e51bce451fc3ef67c93ec7fbc"
+    },
+    {
+      "@type": "cr:FileObject",
+      "@id": "curation-table",
+      "name": "curation_table.json",
+      "description": "Quality-guided curation strategies showing how filtering by quality score improves trajectory set composition.",
+      "contentUrl": "https://raw.githubusercontent.com/GITHUB_USER/agentlens/main/agentlens-bench/annotations/curation_table.json",
+      "encodingFormat": "application/json",
+      "sc:sha256": "ce47a4ff154574b166128823f59d4c50376c113b09183d7c0d4c4e02addaad93"
+    }
+  ],
+  "recordSet": [
+    {
+      "@type": "cr:RecordSet",
+      "@id": "tasks",
+      "name": "tasks",
+      "description": "Per-task metadata: trajectory counts, ground-truth PTA structure, and processing statistics for each of the 47 SWE-bench tasks.",
+      "field": [
+        {
+          "@type": "cr:Field",
+          "@id": "tasks/task_id",
+          "name": "task_id",
+          "description": "SWE-bench task identifier (e.g., 'django__django-10880').",
+          "dataType": "sc:Text",
+          "source": { "fileObject": { "@id": "tasks-csv" }, "extract": { "column": "task_id" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "tasks/n_trajectories",
+          "name": "n_trajectories",
+          "description": "Total number of trajectories collected for this task.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "tasks-csv" }, "extract": { "column": "n_trajectories" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "tasks/n_passing",
+          "name": "n_passing",
+          "description": "Number of trajectories that passed SWE-bench tests.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "tasks-csv" }, "extract": { "column": "n_passing" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "tasks/n_failing",
+          "name": "n_failing",
+          "description": "Number of trajectories that failed SWE-bench tests.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "tasks-csv" }, "extract": { "column": "n_failing" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "tasks/n_donors",
+          "name": "n_donors",
+          "description": "Number of passing trajectories used to construct the ground-truth PTA (always 5).",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "tasks-csv" }, "extract": { "column": "n_donors" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "tasks/n_assessed",
+          "name": "n_assessed",
+          "description": "Number of non-seed trajectories assessed against the ground-truth PTA.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "tasks-csv" }, "extract": { "column": "n_assessed" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "tasks/n_errors",
+          "name": "n_errors",
+          "description": "Number of trajectories that produced errors during quality assessment.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "tasks-csv" }, "extract": { "column": "n_errors" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "tasks/merged_pta_states",
+          "name": "merged_pta_states",
+          "description": "Number of states in the merged ground-truth PTA for this task.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "tasks-csv" }, "extract": { "column": "merged_pta_states" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "tasks/merged_pta_transitions",
+          "name": "merged_pta_transitions",
+          "description": "Number of transitions in the merged ground-truth PTA for this task.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "tasks-csv" }, "extract": { "column": "merged_pta_transitions" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "tasks/elapsed_s",
+          "name": "elapsed_s",
+          "description": "Processing time in seconds for PTA construction and quality assessment.",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "tasks-csv" }, "extract": { "column": "elapsed_s" } }
+        }
+      ]
+    },
+    {
+      "@type": "cr:RecordSet",
+      "@id": "trajectories",
+      "name": "trajectories",
+      "description": "Main annotation table with 40 quality dimensions for each of the 1,815 trajectories: identity, quality scores, per-stage coverage, waste detection, and divergence analysis.",
+      "field": [
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/task_id",
+          "name": "task_id",
+          "description": "SWE-bench task identifier.",
+          "dataType": "sc:Text",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "task_id" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/model",
+          "name": "model",
+          "description": "Agent model name (e.g., 'opus-4.5', 'gpt-4.1', 'gemini-2.5-pro').",
+          "dataType": "sc:Text",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "model" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/trajectory_id",
+          "name": "trajectory_id",
+          "description": "Unique trajectory identifier.",
+          "dataType": "sc:Text",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "trajectory_id" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/passed",
+          "name": "passed",
+          "description": "Whether the trajectory passed SWE-bench tests.",
+          "dataType": "sc:Boolean",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "passed" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/n_states",
+          "name": "n_states",
+          "description": "Number of states in the trajectory PTA.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "n_states" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/quality_score",
+          "name": "quality_score",
+          "description": "Overall quality score (0-100) integrating coverage, coherence, workflow similarity, and stage completeness.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "quality_score" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/quality_tier",
+          "name": "quality_tier",
+          "description": "Quality tier classification: ideal (score>=70), solid (47<=score<70), lucky (score<47), partial_fail, or off_track.",
+          "dataType": "sc:Text",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "quality_tier" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/verdict",
+          "name": "verdict",
+          "description": "Human-readable quality verdict.",
+          "dataType": "sc:Text",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "verdict" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/coverage_percent",
+          "name": "coverage_percent",
+          "description": "Percentage of ground-truth PTA states matched by this trajectory (0-100).",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "coverage_percent" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/precision_percent",
+          "name": "precision_percent",
+          "description": "Percentage of candidate trajectory states that matched ground-truth states (0-100).",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "precision_percent" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/f1_score",
+          "name": "f1_score",
+          "description": "Harmonic mean of coverage and precision (0-100).",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "f1_score" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/coherence_score",
+          "name": "coherence_score",
+          "description": "Forward-progress coherence ratio (0-1). Higher values indicate more consistent forward progress through the ground-truth PTA.",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "coherence_score" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/temporal_profile_score",
+          "name": "temporal_profile_score",
+          "description": "Stage timing similarity score (0-1). Measures how closely the trajectory's stage timing matches the ground truth.",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "temporal_profile_score" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/workflow_similarity",
+          "name": "workflow_similarity",
+          "description": "Stage-transition longest common subsequence ratio (0-1).",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "workflow_similarity" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/stage_completeness",
+          "name": "stage_completeness",
+          "description": "Fraction of ground-truth stages covered (0-1).",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "stage_completeness" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/bottleneck_coverage",
+          "name": "bottleneck_coverage",
+          "description": "Minimum per-stage coverage percentage (0-100). Identifies the weakest stage.",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "bottleneck_coverage" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/weighted_score",
+          "name": "weighted_score",
+          "description": "Stage-importance-weighted coverage score.",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "weighted_score" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/stage_coverage_E",
+          "name": "stage_coverage_E",
+          "description": "Exploration stage coverage percentage (0-100).",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "stage_coverage_E" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/stage_coverage_I",
+          "name": "stage_coverage_I",
+          "description": "Implementation stage coverage percentage (0-100).",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "stage_coverage_I" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/stage_coverage_V",
+          "name": "stage_coverage_V",
+          "description": "Verification stage coverage percentage (0-100).",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "stage_coverage_V" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/stage_coverage_O",
+          "name": "stage_coverage_O",
+          "description": "Orchestration stage coverage percentage (0-100).",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "stage_coverage_O" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/regression_loop_count",
+          "name": "regression_loop_count",
+          "description": "Number of Exploration→Implementation→Exploration regression patterns detected.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "regression_loop_count" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/regression_loop_waste",
+          "name": "regression_loop_waste",
+          "description": "Number of wasted steps attributed to regression loops.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "regression_loop_waste" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/blind_retry_count",
+          "name": "blind_retry_count",
+          "description": "Number of sequences of 3+ consecutive identical (tool, file, stage) actions.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "blind_retry_count" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/blind_retry_waste",
+          "name": "blind_retry_waste",
+          "description": "Number of wasted steps attributed to blind retries.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "blind_retry_waste" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/redundant_step_count",
+          "name": "redundant_step_count",
+          "description": "Number of file re-reads with no intervening edit.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "redundant_step_count" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/redundant_step_waste",
+          "name": "redundant_step_waste",
+          "description": "Number of wasted steps attributed to redundant reads.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "redundant_step_waste" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/unnecessary_exploration_count",
+          "name": "unnecessary_exploration_count",
+          "description": "Number of post-implementation exploration actions on non-ground-truth files.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "unnecessary_exploration_count" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/unnecessary_exploration_waste",
+          "name": "unnecessary_exploration_waste",
+          "description": "Number of wasted steps attributed to unnecessary exploration.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "unnecessary_exploration_waste" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/cyclic_pattern_count",
+          "name": "cyclic_pattern_count",
+          "description": "Number of multi-step repeated subsequences detected.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "cyclic_pattern_count" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/cyclic_pattern_waste",
+          "name": "cyclic_pattern_waste",
+          "description": "Number of wasted steps attributed to cyclic patterns.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "cyclic_pattern_waste" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/total_wasted_steps",
+          "name": "total_wasted_steps",
+          "description": "Sum of all waste categories (regression + blind retry + redundant + unnecessary exploration + cyclic).",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "total_wasted_steps" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/waste_severity",
+          "name": "waste_severity",
+          "description": "Waste ratio: total_wasted_steps / n_states (0-1).",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "waste_severity" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/wasted_input_tokens",
+          "name": "wasted_input_tokens",
+          "description": "Total input tokens consumed by wasted steps.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "wasted_input_tokens" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/wasted_output_tokens",
+          "name": "wasted_output_tokens",
+          "description": "Total output tokens consumed by wasted steps.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "wasted_output_tokens" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/divergence_step",
+          "name": "divergence_step",
+          "description": "Step number where the trajectory first diverges from the ground-truth PTA.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "divergence_step" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/divergence_fraction",
+          "name": "divergence_fraction",
+          "description": "Divergence step as a fraction of total states (0-1). Lower values indicate earlier divergence.",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "divergence_fraction" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/stage_order_match",
+          "name": "stage_order_match",
+          "description": "Whether the trajectory's stage ordering matches the ground-truth stage ordering.",
+          "dataType": "sc:Boolean",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "stage_order_match" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/failure_reasons",
+          "name": "failure_reasons",
+          "description": "JSON-serialized list of failure reasons with severity levels.",
+          "dataType": "sc:Text",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "failure_reasons" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "trajectories/strengths",
+          "name": "strengths",
+          "description": "JSON-serialized list of identified trajectory strengths.",
+          "dataType": "sc:Text",
+          "source": { "fileObject": { "@id": "trajectories-csv" }, "extract": { "column": "strengths" } }
+        }
+      ]
+    },
+    {
+      "@type": "cr:RecordSet",
+      "@id": "curation_strategies",
+      "name": "curation_strategies",
+      "description": "Quality-guided curation strategies showing how filtering trajectories by quality score improves the composition of training sets.",
+      "field": [
+        {
+          "@type": "cr:Field",
+          "@id": "curation_strategies/strategy",
+          "name": "strategy",
+          "description": "Name of the curation strategy (e.g., 'Random (all passing)', 'Top-50 by score').",
+          "dataType": "sc:Text",
+          "source": { "fileObject": { "@id": "curation-table" }, "extract": { "jsonPath": "$[*].strategy" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "curation_strategies/k",
+          "name": "k",
+          "description": "Number of trajectories selected by this strategy.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "curation-table" }, "extract": { "jsonPath": "$[*].k" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "curation_strategies/ideal_pct",
+          "name": "ideal_pct",
+          "description": "Percentage of selected trajectories classified as Ideal tier.",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "curation-table" }, "extract": { "jsonPath": "$[*].ideal_pct" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "curation_strategies/solid_pct",
+          "name": "solid_pct",
+          "description": "Percentage of selected trajectories classified as Solid tier.",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "curation-table" }, "extract": { "jsonPath": "$[*].solid_pct" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "curation_strategies/lucky_pct",
+          "name": "lucky_pct",
+          "description": "Percentage of selected trajectories classified as Lucky tier.",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "curation-table" }, "extract": { "jsonPath": "$[*].lucky_pct" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "curation_strategies/mean_coherence",
+          "name": "mean_coherence",
+          "description": "Mean behavioral coherence score across selected trajectories.",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "curation-table" }, "extract": { "jsonPath": "$[*].mean_coherence" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "curation_strategies/mean_score",
+          "name": "mean_score",
+          "description": "Mean quality score across selected trajectories.",
+          "dataType": "sc:Float",
+          "source": { "fileObject": { "@id": "curation-table" }, "extract": { "jsonPath": "$[*].mean_score" } }
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "curation_strategies/min_score",
+          "name": "min_score",
+          "description": "Minimum quality score among selected trajectories.",
+          "dataType": "sc:Integer",
+          "source": { "fileObject": { "@id": "curation-table" }, "extract": { "jsonPath": "$[*].min_score" } }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,316 @@
+{
+  "initial_state": "state_0",
+  "states": {
+    "state_0": {
+      "state_id": "state_0",
+      "step": 0,
+      "observation": "<initial>",
+      "observation_hash": "46118f556e40719e",
+      "resulting_state": "initial",
+      "resulting_state_hash": "cc51b81974287ab7",
+      "content_hash": "",
+      "content_description": "",
+      "files_touched": [],
+      "tool_used": null,
+      "file_path": "",
+      "line_range": null,
+      "relative_position": "",
+      "operation_type": "",
+      "edit_type": "",
+      "function_name": "",
+      "class_name": "",
+      "scope_path": "",
+      "intent_stage": "",
+      "log_entry": null,
+      "metadata": {
+        "is_initial": true
+      }
+    },
+    "state_1": {
+      "state_id": "state_1",
+      "step": 1,
+      "observation": "Tool: run_in_terminal\ncommand: ls -la /agent/workspace/local && ls -la /testbed && find /agent/workspace/local -maxdepth 2 -type d | head -n 40\nResponse: total 8\ndrwxrwxr-x 2 root root 4096 Apr 29 16:16 .\ndrwxr-xr-x 3 root root 4096 Apr 29 16:16 ..\ntotal 200\ndrwxrwxrwx 1 root root  4096 Apr 29 16:13 .\ndrwxr-xr-x 1 root root  4096 Apr 29 16:16 ..\n-rw-r--r-- 1 root root   297 Aug 15  2024 .codecov.yml\n-rw-r--r-- 1 root root   176 Aug 15  2024 .coveragerc\ndrwxrwxrwx 8 root root  4096 Aug 15  2024 .git\n-rw-r--r-- 1 root root   101 Aug 15  2024 .gitattributes\ndrwxrwxrwx 3 root root  4096 Aug 15  2024 .github\n-rw-r--r-- 1 root root   719 Aug 15  2024 ....",
+      "observation_hash": "d1c50a15ae8abcd3",
+      "resulting_state": "terminal:ls",
+      "resulting_state_hash": "a3ddb13c68832afc",
+      "content_hash": "b3cebe26fe16",
+      "content_description": "Ran terminal command: ls -la /agent/workspace/local && ls -la /testbed && find /agent/workspace/local -maxdepth 2 -type d ",
+      "files_touched": [],
+      "tool_used": "run_in_terminal",
+      "file_path": "",
+      "line_range": null,
+      "relative_position": "",
+      "operation_type": "terminal",
+      "edit_type": "",
+      "function_name": "",
+      "class_name": "",
+      "scope_path": "",
+      "intent_stage": "exploration",
+      "log_entry": {
+        "id": "7",
+        "kind": "toolCall",
+        "index": 4,
+        "signature": "toolCall:run_in_terminal({\"command\": \"ls -la /agent/workspace/local && ls -la /testbed && find /agent/workspace/local -maxdepth 2 -type d ...\"})",
+        "tool": "run_in_terminal",
+        "args": {
+          "command": "ls -la /agent/workspace/local && ls -la /testbed && find /agent/workspace/local -maxdepth 2 -type d | head -n 40",
+          "is_input": false,
+          "thought": "",
+          "blocking": false,
+          "is_static": false,
+          "hidden": false,
+          "confirmation_state": "confirmed",
+          "security_risk": 0
+        },
+        "response_preview": "total 8\ndrwxrwxr-x 2 root root 4096 Apr 29 16:16 .\ndrwxr-xr-x 3 root root 4096 Apr 29 16:16 ..\ntotal 200\ndrwxrwxrwx 1 root root  4096 Apr 29 16:13 .\ndrwxr-xr-x 1 root root  4096 Apr 29 16:16 ..\n-rw-r--r-- 1 root root   297 Aug 15  2024 .codecov.yml\n-rw-r--r-- 1 root root   176 Aug 15  2024 .coveragerc\ndrwxrwxrwx 8 root root  4096 Aug 15  2024 .git\n-rw-r--r-- 1 root root   101 Aug 15  2024 .gitattributes\ndrwxrwxrwx 3 root root  4096 Aug 15  2024 .github\n-rw-r--r-- 1 root root   719 Aug 15  2024 ."
+      },
+      "metadata": {
+        "entry_id": "7",
+        "entry_kind": "toolCall",
+        "entry_index": 4,
+        "thought": "",
+        "input_tokens": 8268,
+        "output_tokens": 60,
+        "cached_input_tokens": 6912,
+        "model": "gpt-5.3-codex",
+        "timestamp": "2026-04-29T16:16:57.675857"
+      }
+    },
+    "state_2": {
+      "state_id": "state_2",
+      "step": 2,
+      "observation": "Tool: run_in_terminal\ncommand: cd /testbed && grep -R \"Resulting object does not have monotonic global indexes\" -n xarray && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\n\nyCoord = ['a', 'c', 'b']...\nResponse: cd /testbed && grep -R \"Resulting object does not have monotonic global indexes\" -n xarray && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\nyCoord = ['a', 'c', 'b']\nds1 = xr.Dataset(\n    data_vars=dict(data=(['x', 'y'], np.random.rand(3, 3))),\n    coords=dict(x=[1, 2, 3], y=yCoord),\n)\nds2 = xr.Dataset(\n    data_vars=dict(data=(['x', 'y'], np.random.rand(4, 3))),\n    coords=dict(x=[4, 5, 6, 7], y=yCoord),\n)\nprint('about to combine')\nres = xr.combine_by_coords((d...",
+      "observation_hash": "760f81bf772cc422",
+      "resulting_state": "terminal:cd",
+      "resulting_state_hash": "00018e2d97ab857f",
+      "content_hash": "889c1b428ef9",
+      "content_description": "Ran terminal command: cd /testbed && grep -R \"Resulting object does not have monotonic global indexes\" -n xarray && cat > ",
+      "files_touched": [],
+      "tool_used": "run_in_terminal",
+      "file_path": "",
+      "line_range": null,
+      "relative_position": "",
+      "operation_type": "terminal",
+      "edit_type": "",
+      "function_name": "",
+      "class_name": "",
+      "scope_path": "",
+      "intent_stage": "orchestration",
+      "log_entry": {
+        "id": "11",
+        "kind": "toolCall",
+        "index": 6,
+        "signature": "toolCall:run_in_terminal({\"command\": \"cd /testbed && grep -R \\\"Resulting object does not have monotonic global indexes\\\" -n xarray && cat > ...\"})",
+        "tool": "run_in_terminal",
+        "args": {
+          "command": "cd /testbed && grep -R \"Resulting object does not have monotonic global indexes\" -n xarray && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\n\nyCoord = ['a', 'c', 'b']\n\nds1 = xr.Dataset(\n    data_vars=dict(data=(['x', 'y'], np.random.rand(3, 3))),\n    coords=dict(x=[1, 2, 3], y=yCoord),\n)\n\nds2 = xr.Dataset(\n    data_vars=dict(data=(['x', 'y'], np.random.rand(4, 3))),\n    coords=dict(x=[4, 5, 6, 7], y=yCoord),\n)\n\nprint('about to combine')\nres = xr.combine_by_coords((ds1, ds2))\nprint('combined ok', res)\nPY\npython /tmp/repro_combine_coords.py",
+          "is_input": false,
+          "thought": "",
+          "blocking": false,
+          "is_static": false,
+          "hidden": false,
+          "confirmation_state": "confirmed",
+          "security_risk": 1
+        },
+        "response_preview": "cd /testbed && grep -R \"Resulting object does not have monotonic global indexes\" -n xarray && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\nyCoord = ['a', 'c', 'b']\nds1 = xr.Dataset(\n    data_vars=dict(data=(['x', 'y'], np.random.rand(3, 3))),\n    coords=dict(x=[1, 2, 3], y=yCoord),\n)\nds2 = xr.Dataset(\n    data_vars=dict(data=(['x', 'y'], np.random.rand(4, 3))),\n    coords=dict(x=[4, 5, 6, 7], y=yCoord),\n)\nprint('about to combine')\nres = xr.combine_by_coords((d"
+      },
+      "metadata": {
+        "entry_id": "11",
+        "entry_kind": "toolCall",
+        "entry_index": 6,
+        "thought": "",
+        "input_tokens": 9333,
+        "output_tokens": 241,
+        "cached_input_tokens": 9216,
+        "model": "gpt-5.3-codex",
+        "timestamp": "2026-04-29T16:17:08.241765"
+      }
+    },
+    "state_3": {
+      "state_id": "state_3",
+      "step": 3,
+      "observation": "Tool: run_in_terminal\ncommand: cd /testbed && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\n\nyCoord = ['a', 'c', 'b']\n\nds1 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(3,3))}, coords...\nResponse: cd /testbed && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\nyCoord = ['a', 'c', 'b']\nds1 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(3,3))}, coords={'x':[1,2,3], 'y':yCoord})\nds2 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(4,3))}, coords={'x':[4,5,6,7], 'y':yCoord})\nprint('about to combine')\nprint(xr.combine_by_coords((ds1, ds2)))\nPY\n\n\npython /tmp/repro_combine_coords.py",
+      "observation_hash": "e36c381fd5ed77df",
+      "resulting_state": "terminal:cd",
+      "resulting_state_hash": "00018e2d97ab857f",
+      "content_hash": "becea0621327",
+      "content_description": "Ran terminal command: cd /testbed && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\n\nyCo",
+      "files_touched": [],
+      "tool_used": "run_in_terminal",
+      "file_path": "",
+      "line_range": null,
+      "relative_position": "",
+      "operation_type": "terminal",
+      "edit_type": "",
+      "function_name": "",
+      "class_name": "",
+      "scope_path": "",
+      "intent_stage": "orchestration",
+      "log_entry": {
+        "id": "13",
+        "kind": "toolCall",
+        "index": 7,
+        "signature": "toolCall:run_in_terminal({\"command\": \"cd /testbed && cat > /tmp/repro_combine_coords.py <<'PY'\\nimport xarray as xr\\nimport numpy as np\\n\\nyCo...\"})",
+        "tool": "run_in_terminal",
+        "args": {
+          "command": "cd /testbed && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\n\nyCoord = ['a', 'c', 'b']\n\nds1 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(3,3))}, coords={'x':[1,2,3], 'y':yCoord})\nds2 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(4,3))}, coords={'x':[4,5,6,7], 'y':yCoord})\n\nprint('about to combine')\nprint(xr.combine_by_coords((ds1, ds2)))\nPY\npython /tmp/repro_combine_coords.py",
+          "is_input": false,
+          "thought": "",
+          "blocking": false,
+          "is_static": false,
+          "hidden": false,
+          "confirmation_state": "confirmed",
+          "security_risk": 1
+        },
+        "response_preview": "cd /testbed && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\nyCoord = ['a', 'c', 'b']\nds1 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(3,3))}, coords={'x':[1,2,3], 'y':yCoord})\nds2 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(4,3))}, coords={'x':[4,5,6,7], 'y':yCoord})\nprint('about to combine')\nprint(xr.combine_by_coords((ds1, ds2)))\nPY\n\n\npython /tmp/repro_combine_coords.py"
+      },
+      "metadata": {
+        "entry_id": "13",
+        "entry_kind": "toolCall",
+        "entry_index": 7,
+        "thought": "",
+        "input_tokens": 9850,
+        "output_tokens": 194,
+        "cached_input_tokens": 9472,
+        "model": "gpt-5.3-codex",
+        "timestamp": "2026-04-29T16:17:12.628845"
+      }
+    },
+    "state_4": {
+      "state_id": "state_4",
+      "step": 4,
+      "observation": "Tool: run_in_terminal\ncommand: cd /testbed && grep -R \"def combine_by_coords\\|monotonic global indexes\" -n xarray/core/combine.py && sed -n '1,260p' xarray/core/combine.py\nResponse: cd /testbed && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\nyCoord = ['a', 'c', 'b']\nds1 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(3,3))}, coords={'x':[1,2,3], 'y':yCoord})\nds2 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(4,3))}, coords={'x':[4,5,6,7], 'y':yCoord})\nprint('about to combine')\nprint(xr.combine_by_coords((ds1, ds2)))\nPY\n\n\npython /tmp/repro_combine_coords.py\n^L/testbed/xarray/plot/plot.py:243: SyntaxWarning: \"is\" with...",
+      "observation_hash": "ef8df5dd7a8b0dae",
+      "resulting_state": "terminal:cd",
+      "resulting_state_hash": "00018e2d97ab857f",
+      "content_hash": "bf39ffbcbe2a",
+      "content_description": "Ran terminal command: cd /testbed && grep -R \"def combine_by_coords\\|monotonic global indexes\" -n xarray/core/combine.py &",
+      "files_touched": [],
+      "tool_used": "run_in_terminal",
+      "file_path": "",
+      "line_range": null,
+      "relative_position": "",
+      "operation_type": "terminal",
+      "edit_type": "",
+      "function_name": "",
+      "class_name": "",
+      "scope_path": "",
+      "intent_stage": "exploration",
+      "log_entry": {
+        "id": "15",
+        "kind": "toolCall",
+        "index": 8,
+        "signature": "toolCall:run_in_terminal({\"command\": \"cd /testbed && grep -R \\\"def combine_by_coords\\\\|monotonic global indexes\\\" -n xarray/core/combine.py &...\"})",
+        "tool": "run_in_terminal",
+        "args": {
+          "command": "cd /testbed && grep -R \"def combine_by_coords\\|monotonic global indexes\" -n xarray/core/combine.py && sed -n '1,260p' xarray/core/combine.py",
+          "is_input": false,
+          "thought": "",
+          "blocking": false,
+          "is_static": false,
+          "hidden": false,
+          "confirmation_state": "confirmed",
+          "security_risk": 0
+        },
+        "response_preview": "cd /testbed && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\nyCoord = ['a', 'c', 'b']\nds1 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(3,3))}, coords={'x':[1,2,3], 'y':yCoord})\nds2 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(4,3))}, coords={'x':[4,5,6,7], 'y':yCoord})\nprint('about to combine')\nprint(xr.combine_by_coords((ds1, ds2)))\nPY\n\n\npython /tmp/repro_combine_coords.py\n^L/testbed/xarray/plot/plot.py:243: SyntaxWarning: \"is\" with"
+      },
+      "metadata": {
+        "entry_id": "15",
+        "entry_kind": "toolCall",
+        "entry_index": 8,
+        "thought": "",
+        "input_tokens": 10258,
+        "output_tokens": 69,
+        "cached_input_tokens": 8064,
+        "model": "gpt-5.3-codex",
+        "timestamp": "2026-04-29T16:17:15.150195",
+        "is_terminal": true
+      }
+    }
+  },
+  "transitions": [
+    {
+      "transition_id": "trans_0",
+      "from_state": "state_0",
+      "to_state": "state_1",
+      "action_type": "run_in_terminal",
+      "action_data": {
+        "command": "ls -la /agent/workspace/local && ls -la /testbed && find /agent/workspace/local -maxdepth 2 -type d | head -n 40"
+      },
+      "step": 1,
+      "metadata": {
+        "entry_id": "7",
+        "signature": "toolCall:run_in_terminal({\"command\": \"ls -la /agent/workspace/local && ls -la /testbed && find /agent/workspace/local -maxdepth 2 -type d ...\"})"
+      }
+    },
+    {
+      "transition_id": "trans_1",
+      "from_state": "state_1",
+      "to_state": "state_2",
+      "action_type": "run_in_terminal",
+      "action_data": {
+        "command": "cd /testbed && grep -R \"Resulting object does not have monotonic global indexes\" -n xarray && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\n\nyCoord = ['a', 'c', 'b']\n\nds1 = xr.Dataset(\n    data_vars=dict(data=(['x', 'y'], np.random.rand(3, 3))),\n    coords=dict(x=[1, 2, 3], y=yCoord),\n)\n\nds2 = xr.Dataset(\n    data_vars=dict(data=(['x', 'y'], np.random.rand(4, 3))),\n    coords=dict(x=[4, 5, 6, 7], y=yCoord),\n)\n\nprint('about to combine')\nres = xr.combine_by_coords((ds1, ds2))\nprint('combined ok', res)\nPY\npython /tmp/repro_combine_coords.py"
+      },
+      "step": 2,
+      "metadata": {
+        "entry_id": "11",
+        "signature": "toolCall:run_in_terminal({\"command\": \"cd /testbed && grep -R \\\"Resulting object does not have monotonic global indexes\\\" -n xarray && cat > ...\"})"
+      }
+    },
+    {
+      "transition_id": "trans_2",
+      "from_state": "state_2",
+      "to_state": "state_3",
+      "action_type": "run_in_terminal",
+      "action_data": {
+        "command": "cd /testbed && cat > /tmp/repro_combine_coords.py <<'PY'\nimport xarray as xr\nimport numpy as np\n\nyCoord = ['a', 'c', 'b']\n\nds1 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(3,3))}, coords={'x':[1,2,3], 'y':yCoord})\nds2 = xr.Dataset(data_vars={'data': (['x','y'], np.random.rand(4,3))}, coords={'x':[4,5,6,7], 'y':yCoord})\n\nprint('about to combine')\nprint(xr.combine_by_coords((ds1, ds2)))\nPY\npython /tmp/repro_combine_coords.py"
+      },
+      "step": 3,
+      "metadata": {
+        "entry_id": "13",
+        "signature": "toolCall:run_in_terminal({\"command\": \"cd /testbed && cat > /tmp/repro_combine_coords.py <<'PY'\\nimport xarray as xr\\nimport numpy as np\\n\\nyCo...\"})"
+      }
+    },
+    {
+      "transition_id": "trans_3",
+      "from_state": "state_3",
+      "to_state": "state_4",
+      "action_type": "run_in_terminal",
+      "action_data": {
+        "command": "cd /testbed && grep -R \"def combine_by_coords\\|monotonic global indexes\" -n xarray/core/combine.py && sed -n '1,260p' xarray/core/combine.py"
+      },
+      "step": 4,
+      "metadata": {
+        "entry_id": "15",
+        "signature": "toolCall:run_in_terminal({\"command\": \"cd /testbed && grep -R \\\"def combine_by_coords\\\\|monotonic global indexes\\\" -n xarray/core/combine.py &...\"})"
+      }
+    }
+  ],
+  "metadata": {
+    "source_file": "trajectory_openhands.json",
+    "source_path": "C:\\Users\\V-PRIY~1\\AppData\\Local\\Temp\\pta_experiment_p8uk49bp\\pydata__xarray-3151\\pydata__xarray-3151-logs-gpt-5.3-codex-fail-25119540823\\output\\trajectories\\trajectory_openhands.json",
+    "source_format": "openhands",
+    "num_entries": 4,
+    "generator": "swe_trace_sdk.openhands",
+    "compaction_count": 0,
+    "task_description": "<uploaded_files>\n/testbed\n</uploaded_files>\nI've uploaded a python code repository in the directory /testbed. Consider the following issue description:\n\n<issue_description>\nxr.combine_by_coords raises ValueError if identical coordinates are non-monotonic\n#### MCVE Code Sample\n<!-- In order for the maintainers to efficiently understand and prioritize issues, we ask you post a \"Minimal, Complete and Verifiable Example\" (MCVE): http://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports -->\n\n```python\nimport xarray as xr\nimport numpy as np\n\n#yCoord = ['a', 'b', 'c']  # works without error\nyCoord = ['a', 'c', 'b']  # raises ValueError on combine\n\nds1 = xr.Dataset(\n    data_vars=dict(\n        data=(['x', 'y'], np.random.rand(3, 3))\n    ),\n    coords=dict(\n        x=[1, 2, 3],\n        y=yCoord\n    )\n)\n\nds2 = xr.Dataset(\n    data_vars=dict(\n        data=(['x', 'y'], np.random.rand(4, 3))\n    ),\n    coords = dict(\n        x=[4, 5, 6, 7],\n        y=yCoord\n    )\n)\n\nds3 = xr.combine_by_coords((ds1, ds2))\n\n\n```\n\n#### Expected Output\n\n`combine_by_coords` should return without error.\n\n#### Problem Description\nRunning the example with `yCoord = ['a', 'c', 'b']` raises an error:\n```\nValueError: Resulting object does not have monotonic global indexes along dimension y\n```\n\nThe documentation for `combine_by_coords` says that \"Non-coordinate dimensions will be ignored, **as will any coordinate dimensions which do not vary between each dataset**\". This is not the case with the current implementation, since identical coordinate dimensions are still required to be monotonic.\n\n#### Output of ``xr.show_versions()``\n<details>\nINSTALLED VERSIONS\n------------------\ncommit: None\npython: 3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]\npython-bits: 64\nOS: Windows\nOS-release: 10\nmachine: AMD64\nprocessor: Intel64 Family 6 Model 94 Stepping 3, GenuineIntel\nbyteorder: little\nLC_ALL: None\nLANG: None\nLOCALE: None.None\nlibhdf5: None\nlibnetcdf: None\nxarray: 0.12.3\npan",
+    "trajectory_id": "pydata__xarray-3151-logs-gpt-5.3-codex-fail-25119540823.zip",
+    "task_name": "pydata__xarray-3151",
+    "model_name": "gpt-5.3-codex",
+    "pass_fail_status": "failed"
+  },
+  "branches": {},
+  "statistics": {
+    "num_states": 5,
+    "num_transitions": 4,
+    "terminal_states": [
+      "state_4"
+    ],
+    "tool_sequence": [
+      "run_in_terminal",
+      "run_in_terminal",
+      "run_in_terminal",
+      "run_in_terminal"
+    ]
+  }
+}

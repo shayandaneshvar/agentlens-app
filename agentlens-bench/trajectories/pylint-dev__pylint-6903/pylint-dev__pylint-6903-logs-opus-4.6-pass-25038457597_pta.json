@@ -1,0 +1,194 @@
+{
+  "initial_state": "state_0",
+  "states": {
+    "state_0": {
+      "state_id": "state_0",
+      "step": 0,
+      "observation": "<initial>",
+      "observation_hash": "46118f556e40719e",
+      "resulting_state": "initial",
+      "resulting_state_hash": "cc51b81974287ab7",
+      "content_hash": "",
+      "content_description": "",
+      "files_touched": [],
+      "tool_used": null,
+      "file_path": "",
+      "line_range": null,
+      "relative_position": "",
+      "operation_type": "",
+      "edit_type": "",
+      "function_name": "",
+      "class_name": "",
+      "scope_path": "",
+      "intent_stage": "",
+      "log_entry": null,
+      "metadata": {
+        "is_initial": true
+      }
+    },
+    "state_1": {
+      "state_id": "state_1",
+      "step": 1,
+      "observation": "Tool: run_in_terminal\ncommand: sed -n '30,65p' /testbed/pylint/lint/run.py\nResponse: except ImportError:\n    multiprocessing = None  # type: ignore[assignment]\n\n\ndef _query_cpu() -> int | None:\n    \"\"\"Try to determine number of CPUs allotted in a docker container.\n\n    This is based on discussion and copied from suggestions in\n    https://bugs.python.org/issue36054.\n    \"\"\"\n    cpu_quota, avail_cpu = None, None\n\n    if Path(\"/sys/fs/cgroup/cpu/cpu.cfs_quota_us\").is_file():\n        with open(\"/sys/fs/cgroup/cpu/cpu.cfs_quota_us\", encoding=\"utf-8\") as file:\n            # Not usefu...",
+      "observation_hash": "cb8d56d70d908e87",
+      "resulting_state": "terminal:sed",
+      "resulting_state_hash": "18736c6326654822",
+      "content_hash": "d384bebafa90",
+      "content_description": "Ran terminal command: sed -n '30,65p' /testbed/pylint/lint/run.py",
+      "files_touched": [],
+      "tool_used": "run_in_terminal",
+      "file_path": "",
+      "line_range": null,
+      "relative_position": "",
+      "operation_type": "terminal",
+      "edit_type": "",
+      "function_name": "",
+      "class_name": "",
+      "scope_path": "",
+      "intent_stage": "exploration",
+      "log_entry": {
+        "id": "5",
+        "kind": "toolCall",
+        "index": 3,
+        "signature": "toolCall:run_in_terminal({\"command\": \"sed -n '30,65p' /testbed/pylint/lint/run.py\"})",
+        "tool": "run_in_terminal",
+        "args": {
+          "command": "sed -n '30,65p' /testbed/pylint/lint/run.py",
+          "is_input": false,
+          "thought": "",
+          "blocking": false,
+          "is_static": false,
+          "hidden": false,
+          "confirmation_state": "confirmed",
+          "security_risk": 0
+        },
+        "response_preview": "except ImportError:\n    multiprocessing = None  # type: ignore[assignment]\n\n\ndef _query_cpu() -> int | None:\n    \"\"\"Try to determine number of CPUs allotted in a docker container.\n\n    This is based on discussion and copied from suggestions in\n    https://bugs.python.org/issue36054.\n    \"\"\"\n    cpu_quota, avail_cpu = None, None\n\n    if Path(\"/sys/fs/cgroup/cpu/cpu.cfs_quota_us\").is_file():\n        with open(\"/sys/fs/cgroup/cpu/cpu.cfs_quota_us\", encoding=\"utf-8\") as file:\n            # Not usefu"
+      },
+      "metadata": {
+        "entry_id": "5",
+        "entry_kind": "toolCall",
+        "entry_index": 3,
+        "thought": "",
+        "input_tokens": 10467,
+        "output_tokens": 92,
+        "cached_input_tokens": 0,
+        "model": "Claude Opus 4.6",
+        "timestamp": "2026-04-28T07:23:02.947703"
+      }
+    },
+    "state_2": {
+      "state_id": "state_2",
+      "step": 2,
+      "observation": "Tool: replace_string_in_file\nfilePath: /pylint/lint/run.py\ncommand: str_replace\ncontent: \nResponse: The file was edited successfully. The file /testbed/pylint/lint/run.py has been edited. Here's the result of running `cat -n` on a snippet of /testbed/pylint/lint/run.py:\n    52\t        with open(\"/sys/fs/cgroup/cpu/cpu.cfs_period_us\"",
+      "observation_hash": "71acd3c5dcac963b",
+      "resulting_state": "file_modified:pylint/lint/run.py",
+      "resulting_state_hash": "225e3db794bd221f",
+      "content_hash": "804f3532818e",
+      "content_description": "In 'run.py': modified content",
+      "files_touched": [
+        "/pylint/lint/run.py"
+      ],
+      "tool_used": "replace_string_in_file",
+      "file_path": "pylint/lint/run.py",
+      "line_range": [
+        1,
+        7
+      ],
+      "relative_position": "",
+      "operation_type": "modify",
+      "edit_type": "replace",
+      "function_name": "",
+      "class_name": "",
+      "scope_path": "",
+      "intent_stage": "implementation",
+      "log_entry": {
+        "id": "7",
+        "kind": "toolCall",
+        "index": 4,
+        "signature": "toolCall:replace_string_in_file({\"command\": \"str_replace\", \"filePath\": \"/pylint/lint/run.py\"})",
+        "tool": "replace_string_in_file",
+        "args": {
+          "filePath": "/pylint/lint/run.py",
+          "command": "str_replace",
+          "oldString": "        avail_cpu = int(cpu_quota / cpu_period)\n    elif Path(\"/sys/fs/cgroup/cpu/cpu.shares\").is_file():\n        with open(\"/sys/fs/cgroup/cpu/cpu.shares\", encoding=\"utf-8\") as file:\n            cpu_shares = int(file.read().rstrip())\n        # For AWS, gives correct value * 1024.\n        avail_cpu = int(cpu_shares / 1024)\n    return avail_cpu",
+          "newString": "        avail_cpu = int(cpu_quota / cpu_period) or 1\n    elif Path(\"/sys/fs/cgroup/cpu/cpu.shares\").is_file():\n        with open(\"/sys/fs/cgroup/cpu/cpu.shares\", encoding=\"utf-8\") as file:\n            cpu_shares = int(file.read().rstrip())\n        # For AWS, gives correct value * 1024.\n        avail_cpu = int(cpu_shares / 1024) or 1\n    return avail_cpu",
+          "content": "",
+          "start": 1,
+          "end": -1,
+          "thought": "",
+          "security_risk": 0,
+          "impl_source": "oh_aci"
+        },
+        "response_preview": "The file was edited successfully. The file /testbed/pylint/lint/run.py has been edited. Here's the result of running `cat -n` on a snippet of /testbed/pylint/lint/run.py:\n    52\t        with open(\"/sys/fs/cgroup/cpu/cpu.cfs_period_us\""
+      },
+      "metadata": {
+        "entry_id": "7",
+        "entry_kind": "toolCall",
+        "entry_index": 4,
+        "thought": "",
+        "input_tokens": 11087,
+        "output_tokens": 382,
+        "cached_input_tokens": 0,
+        "model": "Claude Opus 4.6",
+        "timestamp": "2026-04-28T07:23:08.581904",
+        "is_terminal": true
+      }
+    }
+  },
+  "transitions": [
+    {
+      "transition_id": "trans_0",
+      "from_state": "state_0",
+      "to_state": "state_1",
+      "action_type": "run_in_terminal",
+      "action_data": {
+        "command": "sed -n '30,65p' /testbed/pylint/lint/run.py"
+      },
+      "step": 1,
+      "metadata": {
+        "entry_id": "5",
+        "signature": "toolCall:run_in_terminal({\"command\": \"sed -n '30,65p' /testbed/pylint/lint/run.py\"})"
+      }
+    },
+    {
+      "transition_id": "trans_1",
+      "from_state": "state_1",
+      "to_state": "state_2",
+      "action_type": "replace_string_in_file",
+      "action_data": {
+        "filePath": "/pylint/lint/run.py",
+        "command": "str_replace"
+      },
+      "step": 2,
+      "metadata": {
+        "entry_id": "7",
+        "signature": "toolCall:replace_string_in_file({\"command\": \"str_replace\", \"filePath\": \"/pylint/lint/run.py\"})"
+      }
+    }
+  ],
+  "metadata": {
+    "source_file": "trajectory_openhands.json",
+    "source_path": "C:\\Users\\V-PRIY~1\\AppData\\Local\\Temp\\pta_experiment_p8uk49bp\\pylint-dev__pylint-6903\\pylint-dev__pylint-6903-logs-opus-4.6-pass-25038457597\\output\\trajectories\\trajectory_openhands.json",
+    "source_format": "openhands",
+    "num_entries": 2,
+    "generator": "swe_trace_sdk.openhands",
+    "compaction_count": 0,
+    "task_description": "<uploaded_files>\n/testbed\n</uploaded_files>\nI've uploaded a python code repository in the directory /testbed. Consider the following issue description:\n\n<issue_description>\nRunning pylint in Kubernetes Pod with --jobs=0 fails\n### Bug description\n\nI run pylint in multiple parallel stages with Jenkins at a Kubernets agent with `--jobs=0`. \n\nThe newly introduced function [pylint.run._query_cpu()](https://github.com/PyCQA/pylint/blob/main/pylint/lint/run.py#L34) is called to determine the number of cpus to use and returns 0 in this case.\n\nThis leads to a crash of pylint because the multiprocessing needs a value > 0.\n\nI checked the function and found out the following values from the files that are read in above mentioned function:\n\n> cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us\n> \\> -1\n> cat /sys/fs/cgroup/cpu/cpu.cfs_period_us\n> \\> 100000\n> cat /sys/fs/cgroup/cpu/cpu.shares\n> \\> 2\n\nThis leads to the calculation `2/1024` then in line https://github.com/PyCQA/pylint/blob/main/pylint/lint/run.py#L60 which is cast to an `int` and therefore 0 then. \n\n### Configuration\n\n_No response_\n\n### Command used\n\n```shell\npylint --msg-template \"{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}\" --exit-zero --jobs 0 --verbose my_package\n```\n\n\n### Pylint output\n\n```shell\n> [2022-06-09T13:38:24.824Z]   File \"/usr/local/lib/python3.9/dist-packages/pylint/lint/run.py\", line 197, in __init__\n> [2022-06-09T13:38:24.824Z]     linter.check(args)\n> [2022-06-09T13:38:24.824Z]   File \"/usr/local/lib/python3.9/dist-packages/pylint/lint/pylinter.py\", line 650, in check\n> [2022-06-09T13:38:24.824Z]     check_parallel(\n> [2022-06-09T13:38:24.824Z]   File \"/usr/local/lib/python3.9/dist-packages/pylint/lint/parallel.py\", line 140, in check_parallel\n> [2022-06-09T13:38:24.824Z]     with multiprocessing.Pool(\n> [2022-06-09T13:38:24.824Z]   File \"/usr/lib/python3.9/multiprocessing/context.py\", line 119, in Pool\n> [2022-06-09T13:38:24.824Z]     return Pool(processes, initializer, initargs, maxtasksperchi",
+    "trajectory_id": "pylint-dev__pylint-6903-logs-opus-4.6-pass-25038457597.zip",
+    "task_name": "pylint-dev__pylint-6903",
+    "model_name": "opus-4.6",
+    "pass_fail_status": "passed"
+  },
+  "branches": {},
+  "statistics": {
+    "num_states": 3,
+    "num_transitions": 2,
+    "terminal_states": [
+      "state_2"
+    ],
+    "tool_sequence": [
+      "run_in_terminal",
+      "replace_string_in_file"
+    ]
+  }
+}

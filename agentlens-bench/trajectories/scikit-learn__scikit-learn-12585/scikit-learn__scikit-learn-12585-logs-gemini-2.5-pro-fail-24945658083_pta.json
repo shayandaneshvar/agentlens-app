@@ -1,0 +1,121 @@
+{
+  "initial_state": "state_0",
+  "states": {
+    "state_0": {
+      "state_id": "state_0",
+      "step": 0,
+      "observation": "<initial>",
+      "observation_hash": "46118f556e40719e",
+      "resulting_state": "initial",
+      "resulting_state_hash": "cc51b81974287ab7",
+      "content_hash": "",
+      "content_description": "",
+      "files_touched": [],
+      "tool_used": null,
+      "file_path": "",
+      "line_range": null,
+      "relative_position": "",
+      "operation_type": "",
+      "edit_type": "",
+      "function_name": "",
+      "class_name": "",
+      "scope_path": "",
+      "intent_stage": "",
+      "log_entry": null,
+      "metadata": {
+        "is_initial": true
+      }
+    },
+    "state_1": {
+      "state_id": "state_1",
+      "step": 1,
+      "observation": "Tool: run_in_terminal\ncommand: rm reproduce_bug.py\nResponse: rm: cannot remove 'reproduce_bug.py': No such file or directory",
+      "observation_hash": "ff0028779031de99",
+      "resulting_state": "terminal:rm",
+      "resulting_state_hash": "abafc1c9a7957ca1",
+      "content_hash": "75d676465c0b",
+      "content_description": "Ran terminal command: rm reproduce_bug.py",
+      "files_touched": [],
+      "tool_used": "run_in_terminal",
+      "file_path": "",
+      "line_range": null,
+      "relative_position": "",
+      "operation_type": "terminal",
+      "edit_type": "",
+      "function_name": "",
+      "class_name": "",
+      "scope_path": "",
+      "intent_stage": "orchestration",
+      "log_entry": {
+        "id": "53",
+        "kind": "toolCall",
+        "index": 27,
+        "signature": "toolCall:run_in_terminal({\"command\": \"rm reproduce_bug.py\"})",
+        "tool": "run_in_terminal",
+        "args": {
+          "command": "rm reproduce_bug.py",
+          "is_input": false,
+          "thought": "I have successfully addressed the issue.\n\nFirst, I created a `reproduce_bug.py` script to confirm the `TypeError` described in the issue. The script failed as expected.\n\nNext, I modified the `clone` function in `/testbed/sklearn/base.py`. I added a condition to check if the object being cloned is a class type (`isinstance(estimator, type)`). If it is, the function now returns the class directly instead of attempting to call `get_params` on it, which was the source of the error.\n\nFinally, I re-ran the `reproduce_bug.py` script, and it completed successfully, confirming that the fix works as intended.\n\nThe changes are minimal and targeted, resolving the specific problem of cloning estimators that have class types as parameters without introducing any known side effects. I will now remove the temporary file I created.",
+          "blocking": false,
+          "is_static": false,
+          "hidden": false,
+          "confirmation_state": "confirmed",
+          "security_risk": 1
+        },
+        "response_preview": "rm: cannot remove 'reproduce_bug.py': No such file or directory"
+      },
+      "metadata": {
+        "entry_id": "53",
+        "entry_kind": "toolCall",
+        "entry_index": 27,
+        "thought": "I have successfully addressed the issue.\n\nFirst, I created a `reproduce_bug.py` script to confirm the `TypeError` described in the issue. The script failed as expected.\n\nNext, I modified the `clone` function in `/testbed/sklearn/base.py`. I added a condition to check if the object being cloned is a class type (`isinstance(estimator, type)`). If it is, the function now returns the class directly instead of attempting to call `get_params` on it, which was the source of the error.\n\nFinally, I re-ran the `reproduce_bug.py` script, and it completed successfully, confirming that the fix works as intended.\n\nThe changes are minimal and targeted, resolving the specific problem of cloning estimators that have class types as parameters without introducing any known side effects. I will now remove the temporary file I created.",
+        "input_tokens": 9629,
+        "output_tokens": 199,
+        "cached_input_tokens": 5711,
+        "model": "gemini-2.5-pro",
+        "timestamp": "2026-04-26T01:59:06.638497",
+        "is_terminal": true
+      }
+    }
+  },
+  "transitions": [
+    {
+      "transition_id": "trans_0",
+      "from_state": "state_0",
+      "to_state": "state_1",
+      "action_type": "run_in_terminal",
+      "action_data": {
+        "command": "rm reproduce_bug.py"
+      },
+      "step": 1,
+      "metadata": {
+        "entry_id": "53",
+        "signature": "toolCall:run_in_terminal({\"command\": \"rm reproduce_bug.py\"})"
+      }
+    }
+  ],
+  "metadata": {
+    "source_file": "trajectory_openhands.json",
+    "source_path": "C:\\Users\\V-PRIY~1\\AppData\\Local\\Temp\\pta_experiment_p8uk49bp\\scikit-learn__scikit-learn-12585\\scikit-learn__scikit-learn-12585-logs-gemini-2.5-pro-fail-24945658083\\output\\trajectories\\trajectory_openhands.json",
+    "source_format": "openhands",
+    "num_entries": 1,
+    "generator": "swe_trace_sdk.openhands",
+    "compaction_count": 0,
+    "task_description": "<uploaded_files>\n/testbed\n</uploaded_files>\nI've uploaded a python code repository in the directory /testbed. Consider the following issue description:\n\n<issue_description>\nclone fails for parameters that are estimator types\n#### Description\n\n`clone` fails when one or more instance parameters are estimator types (i.e. not instances, but classes). \n\nI know this is a somewhat unusual use case, but I'm working on a project that provides wrappers for sklearn estimators (https://github.com/phausamann/sklearn-xarray) and I'd like to store the wrapped estimators as their classes - not their instances - as a parameter inside of a wrapper that behaves like an estimator itself. \n\n#### Steps/Code to Reproduce\n\n    from sklearn.preprocessing import StandardScaler\n    from sklearn.base import clone\n    clone(StandardScaler(with_mean=StandardScaler))\n\n#### Expected Results\n\nNo error.\n\n#### Actual Results\n```\nTraceback (most recent call last):\n...\n  File \"...\\lib\\site-packages\\sklearn\\base.py\", line 62, in clone\n    new_object_params[name] = clone(param, safe=False)\n  File \"...\\lib\\site-packages\\sklearn\\base.py\", line 60, in clone\n    new_object_params = estimator.get_params(deep=False)\nTypeError: get_params() missing 1 required positional argument: 'self'\n```\n\n#### Possible fix\n\nChange `base.py`, line 51 to: \n\n    elif not hasattr(estimator, 'get_params') or isinstance(estimator, type):\n\nI'm not sure whether this might break stuff in other places, however. I'd happily submit a PR if this change is desired.\n\n#### Versions\n\n    sklearn: 0.20.0\n\n\n\n</issue_description>\n\nCan you help me implement the necessary changes to the repository so that the requirements specified in the <issue_description> are met?\nI've already taken care of all changes to any of the test files described in the <pr_description>. This means you DON'T have to modify the testing logic or any of the tests in any way!\nYour task is to make the minimal changes to non-tests files in the /workspace directory to ensure t",
+    "trajectory_id": "scikit-learn__scikit-learn-12585-logs-gemini-2.5-pro-fail-24945658083.zip",
+    "task_name": "scikit-learn__scikit-learn-12585",
+    "model_name": "gemini-2.5-pro",
+    "pass_fail_status": "failed"
+  },
+  "branches": {},
+  "statistics": {
+    "num_states": 2,
+    "num_transitions": 1,
+    "terminal_states": [
+      "state_1"
+    ],
+    "tool_sequence": [
+      "run_in_terminal"
+    ]
+  }
+}
