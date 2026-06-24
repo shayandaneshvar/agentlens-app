@@ -136,22 +136,20 @@ def main():
     line("unnecessary exploration F/P", 1.58, prevalence_ratio("unnecessary_exploration_count"))
     line("cyclic patterns F/P", 1.32, prevalence_ratio("cyclic_pattern_count"))
 
-    # ---- Lucky vs Ideal blind-retry waste-per-instance (Sec 5.2) ------------
-    hdr("Blind-retry waste per instance, Lucky vs Ideal (Sec 5.2)")
-    # Pooled: total wasted steps / total retry instances within each tier.
-    def waste_per_instance(sub):
+    # ---- Lucky vs Ideal blind-retry waste (Sec 5.2 / App C.3) ---------------
+    hdr("Blind-retry waste, Lucky vs Ideal (Sec 5.2 / App C.3)")
+    # Paper definition: mean wasted steps among trajectories that HAVE >=1 retry
+    # (mean(blind_retry_waste | blind_retry_count > 0)), not per-instance.
+    def waste_with_pattern(sub):
         s = sub[sub["blind_retry_count"] > 0]
-        if not len(s):
-            return float("nan")
-        return round(s["blind_retry_waste"].sum() / s["blind_retry_count"].sum(), 1)
+        return round(s["blind_retry_waste"].mean(), 1) if len(s) else float("nan")
     lucky = passing[passing["quality_tier"] == "lucky"]
     ideal = passing[passing["quality_tier"] == "ideal"]
-    wl, wi = waste_per_instance(lucky), waste_per_instance(ideal)
-    line("Lucky steps/instance", 11.4, wl)
-    line("Ideal steps/instance", 2.7, wi)
+    wl, wi = waste_with_pattern(lucky), waste_with_pattern(ideal)
+    line("Lucky waste (with retry)", 11.4, wl)
+    line("Ideal waste (with retry)", 2.7, wi)
     line("ratio (Lucky/Ideal)", "4.2x", f"{round(wl/wi,1)}x" if wi else "n/a")
-    print("  NOTE: absolute values differ from paper (raw-trace waste-window accounting),")
-    print("        but the qualitative finding reproduces: Lucky wastes ~4x more per retry.")
+    print("  (full 5-category waste tables: run repro/reproduce_waste.py)")
 
     # ---- Pass/fail discrimination (Table 3 / Sec 5.3) -----------------------
     hdr("Pass/fail discrimination — combined score (Table 3 / Sec 5.3)")

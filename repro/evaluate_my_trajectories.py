@@ -57,6 +57,27 @@ import swe_trace_sdk._generator_atif as _atif_gen  # noqa: E402
 for _t in _atif_gen._CANONICAL_TOOLS:
     _atif_gen._TOOL_NAME_MAP.setdefault(_t, _t)
 
+# Reuse the dataset's exact 5-category waste detectors (build_dataset is
+# import-safe: functions are module-level, main() is guarded).
+sys.path.insert(0, str(ROOT / "experiments"))
+from build_dataset import (  # noqa: E402
+    get_ordered_states,
+    detect_regression_loops,
+    detect_redundant_steps,
+    detect_unnecessary_exploration,
+    extract_blind_retries,
+    extract_cyclic_patterns,
+)
+
+# (category key, label) — GT-aware; patterns in the merged PTA are not counted.
+WASTE_CATS = [
+    ("regression_loop", "regression loops"),
+    ("blind_retry", "blind retries"),
+    ("redundant_step", "redundant steps"),
+    ("unnecessary_exploration", "unnecessary exploration"),
+    ("cyclic_pattern", "cyclic patterns"),
+]
+
 IDEAL_MIN, LUCKY_MAX = 70, 47
 DEFAULT_K, DEFAULT_SEED = 5, 42
 
@@ -106,6 +127,23 @@ def score_no_outcome(m) -> int:
         + 0.10 * m.f1_score
     )
     return max(0, min(100, int(round(base))))
+
+
+def detect_waste(cand, gt, qr):
+    """Run the 5 GT-aware waste detectors for one (candidate, reference) pair.
+
+    Returns {cat_key: {"count": int, "wasted_steps": int}} for the 5 categories.
+    """
+    cand_states = get_ordered_states(cand)
+    gt_paths = match._enumerate_paths(gt)
+    gt_best = gt_paths[0] if gt_paths else []
+    return {
+        "regression_loop": detect_regression_loops(cand_states, gt_best),
+        "redundant_step": detect_redundant_steps(cand_states, gt_best),
+        "unnecessary_exploration": detect_unnecessary_exploration(cand_states, gt_best, gt),
+        "blind_retry": extract_blind_retries(qr),
+        "cyclic_pattern": extract_cyclic_patterns(qr),
+    }
 
 
 def adapt_trajectory(raw: dict) -> dict:
@@ -231,7 +269,8 @@ def main():
             if not cand.states:
                 skipped.append((d.name, task, "empty trace after adaptation"))
                 continue
-            scores, covs, cohs, divs, tiers = [], [], [], [], []
+            scores, covs, cohs, tiers = [], [], [], []
+            waste_runs = []  # list of {cat: {count, wasted_steps}} per reference
             for s in seeds:
                 key = (task, s)
                 if key not in ref_cache:
@@ -246,8 +285,7 @@ def main():
                 tiers.append(revised_tier(sc, bool(passed)))
                 covs.append(qr.key_metrics.get("coverage_percent", 0.0))
                 cohs.append(qr.key_metrics.get("coherence", 0.0))
-                if qr.divergence_point:
-                    divs.append(getattr(qr.divergence_point, "step", None))
+                waste_runs.append(detect_waste(cand, gt, qr))
             if not scores:
                 skipped.append((d.name, task, "no reference (no PTA / too few passing)"))
                 continue
@@ -255,6 +293,16 @@ def main():
             std_score = statistics.pstdev(scores) if len(scores) > 1 else 0.0
             mean_tier = revised_tier(mean_score, bool(passed))
             tier_set = sorted(set(tiers))
+            # mean waste per category across references
+            waste = {}
+            for c, _ in WASTE_CATS:
+                waste[f"{c}_count"] = round(
+                    statistics.mean(w[c]["count"] for w in waste_runs), 1)
+                waste[f"{c}_waste"] = round(
+                    statistics.mean(w[c]["wasted_steps"] for w in waste_runs), 1)
+            total_wasted = round(
+                statistics.mean(sum(w[c]["wasted_steps"] for c, _ in WASTE_CATS)
+                                for w in waste_runs), 1)
             results.append({
                 "instance": d.name,
                 "task": task,
@@ -270,6 +318,8 @@ def main():
                 "tiers_seen": tier_set,
                 "coverage_percent": round(statistics.mean(covs), 1),
                 "coherence": round(statistics.mean(cohs), 3),
+                "total_wasted_steps": total_wasted,
+                **waste,
             })
         except Exception as e:
             skipped.append((d.name, task, f"error: {e}"))
@@ -311,6 +361,28 @@ def main():
         if unstable:
             print(f"  tier varied across donor draws for {len(unstable)} trajectory(ies) "
                   f"(see 'stbl=N') — interpret those tiers as borderline.")
+
+    # ---- waste report: 5 GT-aware categories (count / wasted steps) ----
+    if results:
+        print("\n" + "=" * 40)
+        print("WASTE (5 categories, GT-aware)")
+        print("=" * 40)
+        print("  count = instances detected; waste = wasted steps "
+              "(mean over donor draws). Patterns already in the reference PTA are excluded.")
+        abbr = {"regression_loop": "regress", "blind_retry": "retry",
+                "redundant_step": "redund", "unnecessary_exploration": "unnec-expl",
+                "cyclic_pattern": "cyclic"}
+        hdr = f"{'task':<26}" + "".join(f"{abbr[c]:>12}" for c, _ in WASTE_CATS) + f"{'TOTAL':>8}"
+        print(hdr); print("-" * len(hdr))
+        for r in sorted(results, key=lambda x: -x["total_wasted_steps"]):
+            cells = "".join(f"{str(r[f'{c}_count'])+'/'+str(r[f'{c}_waste']):>12}"
+                            for c, _ in WASTE_CATS)
+            print(f"{r['task']:<26}{cells}{r['total_wasted_steps']:>8}")
+        # roll-up: total wasted steps per category across all trajectories
+        print("  totals (wasted steps, summed over trajectories):")
+        for c, label in WASTE_CATS:
+            tot = round(sum(r[f"{c}_waste"] for r in results), 1)
+            print(f"    {label:<24}: {tot}")
 
     if skipped:
         print(f"\nSkipped {len(skipped)}:")

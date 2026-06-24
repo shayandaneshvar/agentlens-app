@@ -40,18 +40,21 @@ So reproduction is done at two levels.
 | Tier — Off-track (failing) | 306 (45.1%) | 306 (45.1%) ✅ |
 | Model comparison (Table 2) | all 8 rows: Pass%, PR-rank, QS, QS-rank, Lucky% | ✅ exact |
 | Curation table | Random/Top-50/Top-25 ideal%/lucky%/coh/score | ✅ exact |
-| Waste F/P ratios (§5.2) | unnecessary-expl 1.58 · cyclic 1.32 | ✅ exact |
+| Waste tables (App C.2 & C.3, all 5 categories) | every cell of both tables | ✅ exact (`reproduce_waste.py`) |
 
 The five tier rows sum to the full 1,815: passing 229+785+122 = 1,136; failing
 373+306 = 679. Failing percentages are over the 679 failing trajectories
 (paper §5.3: "54.9% are Partial-fail and 45.1% are Off-track").
 
-Two blocks differ, both explained:
+**Waste (5 categories).** `reproduce_waste.py` reproduces both paper waste tables
+exactly: the pass/fail breakdown (App C.2 — e.g. unnecessary-exploration F/P 1.58,
+cyclic F/P 1.32) and the Ideal-vs-Lucky table (App C.3 — e.g. blind-retry waste
+11.4 Lucky vs 2.7 Ideal). "Waste" = mean wasted steps among trajectories that have
+the pattern, `mean(<cat>_waste | <cat>_count>0)`. (An earlier draft mis-stated this
+as per-instance and got 6.7; the per-trajectory definition matches the paper.)
 
-- **Blind-retry waste/instance (§5.2):** reproduced 6.7 (Lucky) / 1.8 (Ideal),
-  ratio 3.7× vs paper 11.4 / 2.7 / 4.2×. The qualitative finding (Lucky wastes
-  ~4× more per retry) reproduces; absolute values use a raw-trace waste-window
-  accounting not recoverable from the annotation columns.
+One block differs, explained:
+
 - **Pass/fail discrimination (Table 3):** the shipped `quality_score` includes a
   `0.10·outcome` **label-leak** term (see `sdk/.../match.py:_compute_quality_score`),
   giving AUROC **0.886**. Removing the outcome term drops AUROC to **0.723**

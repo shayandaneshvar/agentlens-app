@@ -96,7 +96,31 @@ SUMMARY
 - **±std** is the score spread across donor draws; **stbl** = `y` if the tier was
   the same in every draw (`N` = it flipped, so treat that tier as borderline).
 - The **SUMMARY** reports total passes/fails and the count in each tier.
+- A **WASTE** section reports the 5 inefficiency categories per trajectory (see below).
 - Plus a **Skipped** list explaining any instance that was not scored.
+
+### Waste report (5 categories)
+
+Same detectors and definitions as the dataset (`build_dataset.py`), reused directly:
+
+```
+WASTE (5 categories, GT-aware)
+task                           regress       retry      redund  unnec-expl      cyclic   TOTAL
+pydata__xarray-2905                0/0     1.4/2.2         4/4         0/0        2/20    26.2
+pydata__xarray-4075                0/0         0/0         0/0         0/0         0/0       0
+```
+
+Each cell is `count / wasted-steps` (mean over donor draws). The categories:
+- **regression loops** — E→I→E backtracks (returning to exploration after editing)
+- **blind retries** — 3+ consecutive identical (tool, file, stage) actions
+- **redundant steps** — re-reading a file with no edit in between
+- **unnecessary exploration** — post-implementation exploration of non-GT, non-test files
+- **cyclic patterns** — multi-step repeated subsequences
+
+All are **ground-truth-aware**: behavior already present in the reference PTA is not
+counted as waste. `TOTAL` is total wasted steps; a per-category roll-up across all
+trajectories is printed below the table. (Exported to the JSON/CSV as
+`<cat>_count` / `<cat>_waste` and `total_wasted_steps`.)
 
 ### Tiers
 - Passing: `ideal` (≥ 70), `solid` (47–69), `lucky` (< 47)

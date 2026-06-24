@@ -120,6 +120,12 @@ resample range for every tier:
 Pass/fail discrimination: AUROC **0.719 ± 0.013** on the pure process score
 (paper Table 3 reports 0.766), vs **0.893** when the outcome term is included.
 
+**Waste (5 categories).** The paper's two waste tables — pass/fail (App C.2) and
+Ideal-vs-Lucky (App C.3), covering regression loops, blind retries, redundant
+steps, unnecessary exploration, and cyclic patterns — reproduce **exactly** from
+the annotations (`reproduce_waste.py`). All detections are ground-truth-aware:
+patterns already in the merged PTA are not counted.
+
 Caveat: a *single* k=5 draw is noisy (one gave Lucky 7.4%); the paper resamples,
 and so should you. Exact *per-trajectory* scores aren't recoverable because the
 original donors aren't in the release (see Issue 2).
@@ -145,6 +151,7 @@ original donors aren't in the release (see Issue 2).
 | File | Purpose |
 |---|---|
 | `reproduce_paper.py` | recompute the paper's headline tables from the released annotations (readback) |
+| `reproduce_waste.py` | reproduce the paper's two 5-category waste tables (App C.2 & C.3) — exact |
 | `validate_pipeline.py` | re-run the SDK scorer against the shipped ground-truth PTAs |
 | `reproduce_k5.py` | independent end-to-end re-score with k=5 / seed=42 (single draw) |
 | `reproduce_k5_resample.py` | the robust version — resamples donor draws, reports mean ± std (run with `PYTHONHASHSEED=0`) |
