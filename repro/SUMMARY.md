@@ -1,0 +1,165 @@
+# AgentLens — Summary
+
+A plain-language overview of what the paper does, how the scoring works, what we
+reproduced, and what's in this `repro/` folder. Everything is kept high-level
+**except the score and its components**, which are spelled out in full.
+
+---
+
+## 1. What AgentLens does
+
+SWE-bench grades a coding agent with one bit: did the final patch pass the tests?
+AgentLens asks a different question — **how** did the agent get there? Two agents
+can both "pass" while one solves the issue directly and the other thrashes through
+retries. AgentLens scores that *process*, not just the outcome.
+
+## 2. How it works (the pipeline)
+
+1. **Parse trajectory → states.** Each tool call becomes a state (tool, file,
+   line range, position).
+2. **Label intent.** Each state is tagged with one of four cognitive phases:
+   **E**xploration (reading/searching), **I**mplementation (editing source),
+   **V**erification (running tests/re-reading edits), **O**rchestration
+   (reasoning/bookkeeping, e.g. `think`). Labeling is context-sensitive — e.g.
+   `grep` stays Exploration even after an edit, but `pytest` is Verification.
+3. **Build a PTA reference.** For each task, several *passing* trajectories are
+   merged into a Prefix Tree Acceptor (PTA) — a DAG where shared steps collapse
+   and genuinely different strategies branch. This represents the *space* of
+   known-good solutions, not a single golden path.
+4. **Score a new trajectory** against that PTA (see §3).
+5. **Report** a 0–100 score, a tier, a divergence point, and a waste breakdown
+   (regression loops, blind retries, redundant steps, unnecessary exploration,
+   cyclic patterns).
+
+The headline finding: among passing trajectories, ~20% are **Ideal**, ~69%
+**Solid**, and ~11% are **Lucky** — correct patches reached through weak process.
+
+---
+
+## 3. The score and its components  *(the detailed part)*
+
+There are **two different scoring formulas** to be aware of.
+
+### 3a. The paper's composite (Eq. 1 in the paper)
+
+```
+f = 0.20·Φ_struct + 0.15·Φ_cov + 0.30·(100·Φ_coh) + 0.35·(100·Φ_temp)
+```
+
+| Signal | What it measures | Scale | Weight |
+|---|---|---|---|
+| **Φ_struct** structural alignment | did the candidate visit PTA states in roughly the right *order* (ordered recall + unordered precision) | 0–100 | 0.20 |
+| **Φ_cov** set coverage | fraction of PTA states matched, ignoring order — *"did it touch the right parts?"* | 0–100 | 0.15 |
+| **Φ_coh** trajectory coherence | forward progress E→I→V; penalizes backtracks and blind retries | 0–1 ×100 | 0.30 |
+| **Φ_temp** temporal profile | how similar the E/I/V/O distribution is over early/middle/late thirds vs the PTA (Jensen–Shannon divergence) | 0–1 ×100 | 0.35 |
+
+The two structural signals ask *whether the agent touched the right states*; the
+two behavioral signals ask *whether it moved through them in a sensible order*.
+Behavioral signals carry 65% of the weight.
+
+### 3b. The formula actually used in the released dataset (`_compute_quality_score`)
+
+The shipped `quality_score` column is computed by a **different** formula:
+
+```
+score = 0.25·coverage + 0.25·(coherence·100) + 0.18·(stage_completeness·100)
+      + 0.12·(workflow_similarity·100) + 0.10·f1 + 0.10·outcome
+```
+
+| Component | Meaning | Weight |
+|---|---|---|
+| **coverage** (`cov%`) | % of ground-truth PTA states matched | 0.25 |
+| **coherence** (`coh`) | forward-progress score, 0–1 | 0.25 |
+| **stage_completeness** | fraction of the GT's intent stages the candidate covered, 0–1 | 0.18 |
+| **workflow_similarity** | longest-common-subsequence ratio of the stage-transition sequence, 0–1 | 0.12 |
+| **f1** | harmonic mean of coverage and precision | 0.10 |
+| **outcome** | the pass/fail label: 100 if passed, 0 if failed, 50 if unknown | 0.10 |
+
+> `cov%` and `coh` in `evaluate_my_trajectories.py` are exactly the **coverage**
+> and **coherence** terms above.
+
+### 3c. Tiers (applied to the score)
+
+| Outcome | Tier | Rule |
+|---|---|---|
+| pass | **Ideal** | score ≥ 70 |
+| pass | **Solid** | 47 ≤ score < 70 |
+| pass | **Lucky** | score < 47 |
+| fail | **Partial-fail** | score ≥ 40 |
+| fail | **Off-track** | score < 40 |
+
+### 3d. Two things to know about the released score
+
+- The paper formula (§3a) and the shipped formula (§3b) are **not the same** —
+  different signals and weights.
+- The shipped formula adds a **`0.10·outcome`** term, i.e. a flat **+10 for any
+  passing trajectory**. So `quality_score` is a *process + outcome* blend, not a
+  pure process score. (Pass `--no-outcome` in the evaluator to drop it.) This is
+  the subject of Issue 1 below.
+
+---
+
+## 4. What we reproduced
+
+**Readback (recompute tiers from the published columns).** Exact by construction —
+it counts the paper's own labels: Ideal 229 (20.2%), Solid 785 (69.1%), Lucky
+122 (10.7%), Partial-fail 373 (54.9%), Off-track 306 (45.1%). This confirms the
+released dataset matches the paper's tables; it is not an independent result.
+
+**Independent re-run (rebuild k=5 PTAs, seed=42, resample 6 donor draws).** The
+distribution reproduces in-distribution — the paper's value lands inside the
+resample range for every tier:
+
+| Tier | Paper | Independent k=5 (mean ± std) |
+|---|---|---|
+| Ideal | 20.2% | 20.3 ± 2.1% |
+| Lucky | 10.7% | 9.7 ± 1.1% |
+| Partial-fail | 54.9% | 58.8 ± 2.7% |
+| Off-track | 45.1% | 41.2 ± 2.7% |
+
+Pass/fail discrimination: AUROC **0.719 ± 0.013** on the pure process score
+(paper Table 3 reports 0.766), vs **0.893** when the outcome term is included.
+
+Caveat: a *single* k=5 draw is noisy (one gave Lucky 7.4%); the paper resamples,
+and so should you. Exact *per-trajectory* scores aren't recoverable because the
+original donors aren't in the release (see Issue 2).
+
+---
+
+## 5. Two issues found (detail in `ISSUE.md`)
+
+1. **Outcome leak in `quality_score`.** The `0.10·outcome` term embeds the
+   pass/fail label in a metric meant to measure process. It inflates pass/fail
+   AUROC (0.886 on the column vs ~0.72 without) and shifts which trajectories land
+   in each tier.
+2. **The shipped ground-truth PTA is mislabeled.** The README calls it a "k=5
+   merge (seed=42)", but each file's metadata shows it was merged from *all*
+   passing trajectories (`num_traces` 8–45, never 5), and it is not the reference
+   the dataset's scores were computed against. The 5 donors per task (235 total)
+   used for the real scoring reference are excluded from the release.
+
+---
+
+## 6. Files in this folder
+
+| File | Purpose |
+|---|---|
+| `reproduce_paper.py` | recompute the paper's headline tables from the released annotations (readback) |
+| `validate_pipeline.py` | re-run the SDK scorer against the shipped ground-truth PTAs |
+| `reproduce_k5.py` | independent end-to-end re-score with k=5 / seed=42 (single draw) |
+| `reproduce_k5_resample.py` | the robust version — resamples donor draws, reports mean ± std (run with `PYTHONHASHSEED=0`) |
+| `evaluate_my_trajectories.py` | score **your own** ATIF trajectories against the paper PTAs (`--k 5 --resamples 5` recommended) |
+| `REPRODUCTION.md` | detailed reproduction report |
+| `EVALUATE_MY_TRAJECTORIES.md` | how to run the evaluator on your data |
+| `ISSUE.md` | the two issues above, with evidence and repro steps |
+
+### Quick start
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
+pip install pandas numpy scikit-learn scipy pyarrow tqdm
+
+python repro/reproduce_paper.py                              # readback tables
+PYTHONHASHSEED=0 python repro/reproduce_k5_resample.py       # independent, resampled
+PYTHONHASHSEED=0 python repro/evaluate_my_trajectories.py my-swebench-sample --k 5 --resamples 5
+```

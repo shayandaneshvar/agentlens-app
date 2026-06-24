@@ -58,22 +58,45 @@ python repro/evaluate_my_trajectories.py my-swebench-sample --out r.json --csv r
 | `folder` (positional) | — | results folder containing `<task>__<suffix>/` dirs |
 | `--k N` | `5` | merge count for the reference PTA. `N>0` builds a fresh k=N merge (seed) from the paper's released **passing** trajectories for the task. `N=0` uses the shipped `ground_truth/<task>.json` (an all-passing merge). |
 | `--seed S` | `42` | donor-selection seed for the k=N merge |
+| `--resamples R` | `1` | for `k>0`: build `R` k-merges from `R` donor draws (seeds `S..S+R-1`) and report **mean ± std** score. A single draw is noisy — **use `--resamples 5` (or more) for a valid, robust score** (see §6). |
 | `--no-outcome` | off | score with the `0.10*outcome` term removed (pure process score) |
 | `--out FILE.json` | — | write per-trajectory results as JSON |
 | `--csv FILE.csv` | — | write a flat CSV |
 
+**Recommended invocation** (robust, paper-faithful):
+
+```bash
+PYTHONHASHSEED=0 python repro/evaluate_my_trajectories.py my-swebench-sample --k 5 --resamples 5
+```
+
 ## 4. What you get
 
 ```
-Reference: k=5 seed=42   |   Score: with +10 pass bonus
+Reference: k=5 seed=42 x5 resamples   |   Score: with +10 pass bonus
 
-task                         pass  score         tier   cov%   coh  div
------------------------------------------------------------------------
-pydata__xarray-4075          True     61        solid   52.4 0.556    2
-pydata__xarray-2905         False     45 partial_fail   54.1  0.45    2
+task                         pass  score  ±std         tier stbl   cov%   coh
+-----------------------------------------------------------------------------
+pydata__xarray-4075          True     63   3.8        solid    y   53.3 0.556
+pydata__xarray-2905         False     43   2.6 partial_fail    y   57.1  0.45
+
+========================================
+SUMMARY
+========================================
+  total scored : 2
+  passed       : 1
+  failed       : 1
+  tiers:
+    [pass] ideal        : 0
+    [pass] solid        : 1
+    [pass] lucky        : 0
+    [fail] partial_fail : 1
+    [fail] off_track    : 0
 ```
 
-Plus a **Skipped** list explaining any instance that was not scored.
+- **±std** is the score spread across donor draws; **stbl** = `y` if the tier was
+  the same in every draw (`N` = it flipped, so treat that tier as borderline).
+- The **SUMMARY** reports total passes/fails and the count in each tier.
+- Plus a **Skipped** list explaining any instance that was not scored.
 
 ### Tiers
 - Passing: `ideal` (≥ 70), `solid` (47–69), `lucky` (< 47)
@@ -108,15 +131,27 @@ or trajectories that yield an empty trace after tool adaptation — is listed un
    If your agent uses other tool names, add them to `FILE_EDITOR_CMD` /
    `FUNCTION_RENAME` near the top of the script.
 
-2. **What "the paper's PTA" means.** With `--k 5` (default) the script builds a
-   fresh k=5/seed=42 merge from the released passing trajectories — the paper's
-   documented hyperparameters. Note the **original** 5 donors per task were
-   excluded from the release (verified: each shipped GT PTA's `num_traces` =
-   released passing + 5), so your k=5 reference uses *different* donors than the
-   paper and scores are close-but-not-identical. `--k 0` uses the shipped
-   `ground_truth` PTA, which is an **all-passing** merge (larger, lower coverage).
+2. **Is a single `--k 5` run valid? Use `--resamples`.** With `--k 5` the
+   reference is built from one random draw of 5 donor trajectories, and the score
+   carries real donor-selection noise (across draws the corpus Lucky rate swings
+   7.8–11.3%, AUROC ±0.013, and individual scores move several points). A single
+   draw is a **noisy point estimate**, not a robust score. Pass `--resamples 5`
+   (or more) to average over donor draws and get a mean ± std plus a tier-stability
+   flag (`stbl`). If `stbl=y`, the tier held across every draw and the result is
+   trustworthy; if `stbl=N`, the trajectory sits on a tier boundary and the label
+   is borderline. This mirrors the paper's merge-count study, which resamples for
+   exactly this reason.
 
-3. **The `+10` pass bonus.** By default `quality_score` uses the shipped SDK
+3. **What "the paper's PTA" means.** With `--k 5` the script builds a fresh
+   k=5/seed=42 merge from the released passing trajectories — the paper's
+   documented hyperparameters. The **original** 5 donors per task were excluded
+   from the release (verified: each shipped GT PTA's `num_traces` = released
+   passing + 5), so your k=5 reference uses *different* donors than the paper;
+   scores match the paper in distribution but are not bit-identical. `--k 0` uses
+   the shipped `ground_truth` PTA, which is an **all-passing** merge (larger, so
+   lower coverage and a systematic downward score offset).
+
+4. **The `+10` pass bonus.** By default `quality_score` uses the shipped SDK
    formula, which adds `0.10 * outcome` (+10 for a passing trajectory). Pass
    `--no-outcome` for a pure process score. Example: with the all-passing GT
    (`--k 0`), `pydata__xarray-4075` scores 50 with the bonus but 46 (`lucky`)

@@ -35,6 +35,7 @@ import argparse
 import json
 import logging
 import random
+import statistics
 import sys
 import tempfile
 import warnings
@@ -197,6 +198,10 @@ def main():
     ap.add_argument("--k", type=int, default=DEFAULT_K,
                     help="merge count for the reference PTA (0 = shipped 14-trace GT)")
     ap.add_argument("--seed", type=int, default=DEFAULT_SEED, help="donor-selection seed")
+    ap.add_argument("--resamples", type=int, default=1,
+                    help="for k>0: build N k-merges from N donor draws (seed, seed+1, ...) "
+                         "and report mean +/- std score. A single draw is noisy; use >=5 "
+                         "for a robust, paper-faithful estimate.")
     ap.add_argument("--no-outcome", action="store_true",
                     help="score without the 0.10*outcome term (pure process score)")
     ap.add_argument("--out", default=None, help="write per-trajectory results JSON here")
@@ -207,56 +212,106 @@ def main():
     inst_dirs = sorted(d for d in folder.iterdir()
                        if d.is_dir() and (d / "agent" / "trajectory.json").exists())
 
-    ref_label = "shipped-GT(14-trace)" if args.k == 0 else f"k={args.k} seed={args.seed}"
+    # Resampling only applies to fresh k-merges (k>0); the shipped GT is fixed.
+    n_resamples = max(1, args.resamples) if args.k > 0 else 1
+    seeds = [args.seed + i for i in range(n_resamples)]
+
+    ref_label = "shipped-GT(all-passing merge)" if args.k == 0 else \
+        f"k={args.k} seed={args.seed}" + (f" x{n_resamples} resamples" if n_resamples > 1 else "")
     score_label = "process-only (no outcome)" if args.no_outcome else "with +10 pass bonus"
     print(f"\nReference: {ref_label}   |   Score: {score_label}")
 
-    ref_cache = {}
+    ref_cache = {}  # (task, seed) -> ref Trace or None
     results, skipped = [], []
     for d in inst_dirs:
         task = task_name_of(d)
-        if task not in ref_cache:
-            ref_cache[task] = build_reference(task, args.k, args.seed)
-        gt = ref_cache[task]
-        if gt is None:
-            skipped.append((d.name, task, "no reference (no PTA / too few passing)"))
-            continue
         passed = get_reward(d)
         try:
             cand = load_candidate(d / "agent" / "trajectory.json")
             if not cand.states:
                 skipped.append((d.name, task, "empty trace after adaptation"))
                 continue
-            res = match.run(cand, gt)
-            qr = match.quality_assessment(res, cand, gt, passed=passed)
-            score = score_no_outcome(res.metrics) if args.no_outcome else qr.quality_score
-            km = qr.key_metrics
+            scores, covs, cohs, divs, tiers = [], [], [], [], []
+            for s in seeds:
+                key = (task, s)
+                if key not in ref_cache:
+                    ref_cache[key] = build_reference(task, args.k, s)
+                gt = ref_cache[key]
+                if gt is None:
+                    continue
+                res = match.run(cand, gt)
+                qr = match.quality_assessment(res, cand, gt, passed=passed)
+                sc = score_no_outcome(res.metrics) if args.no_outcome else qr.quality_score
+                scores.append(sc)
+                tiers.append(revised_tier(sc, bool(passed)))
+                covs.append(qr.key_metrics.get("coverage_percent", 0.0))
+                cohs.append(qr.key_metrics.get("coherence", 0.0))
+                if qr.divergence_point:
+                    divs.append(getattr(qr.divergence_point, "step", None))
+            if not scores:
+                skipped.append((d.name, task, "no reference (no PTA / too few passing)"))
+                continue
+            mean_score = int(round(statistics.mean(scores)))
+            std_score = statistics.pstdev(scores) if len(scores) > 1 else 0.0
+            mean_tier = revised_tier(mean_score, bool(passed))
+            tier_set = sorted(set(tiers))
             results.append({
                 "instance": d.name,
                 "task": task,
                 "passed": passed,
                 "n_states": len(cand.states),
-                "quality_score": score,
-                "tier": revised_tier(score, bool(passed)),
-                "sdk_verdict": qr.verdict,
-                "coverage_percent": round(km.get("coverage_percent", 0.0), 1),
-                "coherence": round(km.get("coherence", 0.0), 3),
-                "stage_completeness": round(km.get("stage_completeness", 0.0), 3),
-                "workflow_similarity": round(km.get("workflow_similarity", 0.0), 3),
-                "divergence_step": getattr(qr.divergence_point, "step", None)
-                if qr.divergence_point else None,
+                "n_refs": len(scores),
+                "quality_score": mean_score,
+                "score_std": round(std_score, 1),
+                "score_min": min(scores),
+                "score_max": max(scores),
+                "tier": mean_tier,
+                "tier_stable": len(tier_set) == 1,
+                "tiers_seen": tier_set,
+                "coverage_percent": round(statistics.mean(covs), 1),
+                "coherence": round(statistics.mean(cohs), 3),
             })
         except Exception as e:
             skipped.append((d.name, task, f"error: {e}"))
 
-    print(f"\nEvaluated {len(results)} trajectory(ies) (from {len(inst_dirs)} instance dirs).\n")
+    note = f" (mean over up to {n_resamples} donor draws)" if n_resamples > 1 else ""
+    print(f"\nEvaluated {len(results)} trajectory(ies){note} "
+          f"(from {len(inst_dirs)} instance dirs).\n")
     if results:
-        hdr = f"{'task':<28}{'pass':>5}{'score':>7}{'tier':>13}{'cov%':>7}{'coh':>6}{'div':>5}"
+        hdr = (f"{'task':<28}{'pass':>5}{'score':>7}{'±std':>6}{'tier':>13}"
+               f"{'stbl':>5}{'cov%':>7}{'coh':>6}")
         print(hdr); print("-" * len(hdr))
         for r in sorted(results, key=lambda x: -x["quality_score"]):
             print(f"{r['task']:<28}{str(r['passed']):>5}{r['quality_score']:>7}"
-                  f"{r['tier']:>13}{r['coverage_percent']:>7}{r['coherence']:>6}"
-                  f"{str(r['divergence_step']):>5}")
+                  f"{r['score_std']:>6}{r['tier']:>13}{('y' if r['tier_stable'] else 'N'):>5}"
+                  f"{r['coverage_percent']:>7}{r['coherence']:>6}")
+
+    # ---- summary: outcome counts + tier counts ----
+    if results:
+        n_pass = sum(1 for r in results if r["passed"] is True)
+        n_fail = sum(1 for r in results if r["passed"] is False)
+        n_unk = sum(1 for r in results if r["passed"] is None)
+        tier_counts = {t: 0 for t in
+                       ("ideal", "solid", "lucky", "partial_fail", "off_track")}
+        for r in results:
+            tier_counts[r["tier"]] = tier_counts.get(r["tier"], 0) + 1
+        print("\n" + "=" * 40)
+        print("SUMMARY")
+        print("=" * 40)
+        print(f"  total scored : {len(results)}")
+        print(f"  passed       : {n_pass}")
+        print(f"  failed       : {n_fail}" + (f"   (unknown: {n_unk})" if n_unk else ""))
+        print("  tiers:")
+        print(f"    [pass] ideal        : {tier_counts['ideal']}")
+        print(f"    [pass] solid        : {tier_counts['solid']}")
+        print(f"    [pass] lucky        : {tier_counts['lucky']}")
+        print(f"    [fail] partial_fail : {tier_counts['partial_fail']}")
+        print(f"    [fail] off_track    : {tier_counts['off_track']}")
+        unstable = [r["instance"] for r in results if not r["tier_stable"]]
+        if unstable:
+            print(f"  tier varied across donor draws for {len(unstable)} trajectory(ies) "
+                  f"(see 'stbl=N') — interpret those tiers as borderline.")
+
     if skipped:
         print(f"\nSkipped {len(skipped)}:")
         for name, task, why in skipped:

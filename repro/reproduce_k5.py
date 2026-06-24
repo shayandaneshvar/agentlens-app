@@ -111,6 +111,14 @@ def main():
     for t in ("ideal", "solid", "lucky"):
         print(f"  {t:<8} {tc[t]:>4}  ({pct(tc[t], np_)}%)")
 
+    fc = defaultdict(int)
+    for r in failing:
+        fc[r["tier"]] += 1
+    nf = len(failing)
+    print("Quality tier distribution among FAILING (paper: 54.9 / 45.1):")
+    for t in ("partial_fail", "off_track"):
+        print(f"  {t:<12} {fc[t]:>4}  ({pct(fc[t], nf)}%)")
+
     print("\nModel comparison (mean QS of passing, Lucky%) — paper Table 2 in parens:")
     paper = {"sonnet-4.5": (67.4, 1.0), "opus-4.5": (66.2, 0.5), "gpt-4o": (63.4, 4.1),
              "gemini-2.5-pro": (59.2, 7.6), "gpt-5.3-codex": (58.3, 15.3),
