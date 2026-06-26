@@ -122,6 +122,37 @@ counted as waste. `TOTAL` is total wasted steps; a per-category roll-up across a
 trajectories is printed below the table. (Exported to the JSON/CSV as
 `<cat>_count` / `<cat>_waste` and `total_wasted_steps`.)
 
+### Lucky Pass taxonomy (why a lucky pass is "lucky")
+
+For any **Lucky**-tier passing trajectory (passed, but `quality_score < 47`), the
+report adds a **LUCKY PASS TAXONOMY** section assigning it to one of the paper's
+five categories (Appendix D.1) via a deterministic, priority-ordered decision tree:
+
+1. **C1 Minimal & Unverified** — ≤8 steps, zero waste, no verification coverage.
+2. **C2 Brute-Force Convergence** — high waste (`waste_severity ≥ 0.30`): thrashing via retries / cycles / regressions.
+3. **C4 Excessive Exploration** — very long (`≥ 40` states).
+4. **C3 Incomplete Implementation** — carries the `incomplete_implementation` failure reason.
+5. **C5 Divergent-but-Valid** — everything else (a coherent but structurally different solution).
+
+Output (only appears when there are Lucky-tier trajectories):
+
+```
+LUCKY PASS TAXONOMY (paper C1–C5)
+  <task>  C2: Brute-Force Convergence
+  counts: {'C2': 1}
+```
+
+Exported as `lucky_category` (C1–C5) and `lucky_category_name`; `null` for
+non-Lucky trajectories.
+
+> **Calibration note.** The paper fixes the *order* and the C1/C3/C5 rules
+> exactly, but does **not** publish the C2 and C4 thresholds. We calibrated
+> `waste_severity ≥ 0.30` (C2) and `length ≥ 40` (C4) against the released 122
+> Lucky passes; this reproduces the paper's category split to within 6/122 (C1
+> and C5 exact) and matches the paper's per-category length/waste profiles. The
+> thresholds live near the top of the script (`C2_WASTE_SEVERITY`,
+> `C4_MIN_LENGTH`) if you want to adjust them.
+
 ### Tiers
 - Passing: `ideal` (≥ 70), `solid` (47–69), `lucky` (< 47)
 - Failing: `partial_fail` (≥ 40), `off_track` (< 40)

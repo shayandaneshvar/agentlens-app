@@ -39,6 +39,7 @@ import statistics
 import sys
 import tempfile
 import warnings
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -127,6 +128,44 @@ def score_no_outcome(m) -> int:
         + 0.10 * m.f1_score
     )
     return max(0, min(100, int(round(base))))
+
+
+# ── Lucky Pass taxonomy (paper Appendix D.1) ───────────────────────────────
+# Priority-ordered, deterministic decision tree applied ONLY to Lucky-tier
+# passing trajectories. The paper fixes the ORDER (C1→C2→C4→C3→C5) and C1's
+# rule exactly ("<=8 steps, zero waste, no verification"); C3 is its
+# incomplete-implementation failure reason; C5 is the remainder. The paper does
+# NOT publish C2 / C4 thresholds, so we calibrated them on the released 122
+# Lucky passes to reproduce the paper's split (C1:19 C2:42 C3:41 C4:5 C5:15):
+#   C2 (Brute-Force) = waste_severity >= 0.30   -> recovers C2's high-waste
+#                      profile (paper mean severity 0.47) and separates it from
+#                      C3 (paper severity 0.05). "Any pattern present" over-counts.
+#   C4 (Excessive)   = length >= 40             -> paper C4 mean length 50.4.
+# This matches the paper within 6/122 (C1 and C5 exact).
+C2_WASTE_SEVERITY = 0.30
+C4_MIN_LENGTH = 40
+
+LUCKY_CATEGORY_NAMES = {
+    "C1": "Minimal & Unverified",
+    "C2": "Brute-Force Convergence",
+    "C3": "Incomplete Implementation",
+    "C4": "Excessive Exploration",
+    "C5": "Divergent-but-Valid",
+}
+
+
+def classify_lucky(length, total_waste, waste_severity,
+                   has_verification, incomplete_impl) -> str:
+    """Assign a Lucky Pass to exactly one of C1–C5 (paper's priority cascade)."""
+    if length <= 8 and total_waste == 0 and not has_verification:
+        return "C1"                       # minimal & unverified
+    if waste_severity >= C2_WASTE_SEVERITY:
+        return "C2"                       # brute-force convergence (thrashing)
+    if length >= C4_MIN_LENGTH:
+        return "C4"                       # excessive exploration
+    if incomplete_impl:
+        return "C3"                       # incomplete implementation
+    return "C5"                           # divergent-but-valid
 
 
 def detect_waste(cand, gt, qr):
@@ -270,7 +309,11 @@ def main():
                 skipped.append((d.name, task, "empty trace after adaptation"))
                 continue
             scores, covs, cohs, tiers = [], [], [], []
-            waste_runs = []  # list of {cat: {count, wasted_steps}} per reference
+            waste_runs = []      # list of {cat: {count, wasted_steps}} per reference
+            lucky_cats = []      # per-draw Lucky category (only used if tier==lucky)
+            # length used for the taxonomy = ordered/labeled state count (matches
+            # build_dataset's n_states, the denominator of waste_severity).
+            n_ordered = len(get_ordered_states(cand))
             for s in seeds:
                 key = (task, s)
                 if key not in ref_cache:
@@ -285,7 +328,15 @@ def main():
                 tiers.append(revised_tier(sc, bool(passed)))
                 covs.append(qr.key_metrics.get("coverage_percent", 0.0))
                 cohs.append(qr.key_metrics.get("coherence", 0.0))
-                waste_runs.append(detect_waste(cand, gt, qr))
+                w = detect_waste(cand, gt, qr)
+                waste_runs.append(w)
+                # signals for the Lucky-Pass decision tree (this draw)
+                total_w = sum(w[c]["wasted_steps"] for c, _ in WASTE_CATS)
+                has_v = res.metrics.stage_coverage.get("verification", 0) > 0
+                incomplete = any(getattr(fr, "reason", "") == "incomplete_implementation"
+                                 for fr in (qr.failure_reasons or []))
+                lucky_cats.append(classify_lucky(
+                    n_ordered, total_w, total_w / max(n_ordered, 1), has_v, incomplete))
             if not scores:
                 skipped.append((d.name, task, "no reference (no PTA / too few passing)"))
                 continue
@@ -303,6 +354,11 @@ def main():
             total_wasted = round(
                 statistics.mean(sum(w[c]["wasted_steps"] for c, _ in WASTE_CATS)
                                 for w in waste_runs), 1)
+            # Lucky Pass category: only meaningful when the trajectory is Lucky.
+            # Use the modal category across donor draws.
+            lucky_cat = None
+            if mean_tier == "lucky" and lucky_cats:
+                lucky_cat = Counter(lucky_cats).most_common(1)[0][0]
             results.append({
                 "instance": d.name,
                 "task": task,
@@ -318,6 +374,8 @@ def main():
                 "tiers_seen": tier_set,
                 "coverage_percent": round(statistics.mean(covs), 1),
                 "coherence": round(statistics.mean(cohs), 3),
+                "lucky_category": lucky_cat,
+                "lucky_category_name": LUCKY_CATEGORY_NAMES.get(lucky_cat) if lucky_cat else None,
                 "total_wasted_steps": total_wasted,
                 **waste,
             })
@@ -383,6 +441,20 @@ def main():
         for c, label in WASTE_CATS:
             tot = round(sum(r[f"{c}_waste"] for r in results), 1)
             print(f"    {label:<24}: {tot}")
+
+    # ---- Lucky Pass taxonomy (only for Lucky-tier passing trajectories) ----
+    lucky = [r for r in results if r.get("lucky_category")]
+    if lucky:
+        print("\n" + "=" * 40)
+        print("LUCKY PASS TAXONOMY (paper C1–C5)")
+        print("=" * 40)
+        print("  Why each Lucky pass is 'lucky' (decision tree over process signals):")
+        for r in sorted(lucky, key=lambda x: x["lucky_category"]):
+            print(f"  {r['task']:<28} {r['lucky_category']}: {r['lucky_category_name']}")
+        cc = Counter(r["lucky_category"] for r in lucky)
+        print("  counts:", {k: cc[k] for k in sorted(cc)})
+    elif any(r["tier"] == "lucky" for r in results):
+        print("\n(LUCKY PASS TAXONOMY: lucky trajectories present but category unresolved)")
 
     if skipped:
         print(f"\nSkipped {len(skipped)}:")

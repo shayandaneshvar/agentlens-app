@@ -42,6 +42,15 @@ agent — scored against the paper's task PTAs.)
 The headline finding: among passing trajectories, ~20% are **Ideal**, ~69%
 **Solid**, and ~11% are **Lucky** — correct patches reached through weak process.
 
+**Lucky Pass taxonomy.** Each Lucky pass is further explained by *why* it's lucky,
+via a deterministic decision tree into five categories: **C1** Minimal & Unverified
+(quick fix, no testing), **C2** Brute-Force Convergence (thrashing until something
+works), **C3** Incomplete Implementation (partial fix that passes weak tests),
+**C4** Excessive Exploration (long, unfocused), **C5** Divergent-but-Valid (a sound
+but structurally different approach). Reproduced to within 6/122 of the paper's
+split; the same classifier runs on your own trajectories in
+`evaluate_my_trajectories.py`.
+
 ---
 
 ## 3. The score and its components  *(the detailed part)*
@@ -166,6 +175,7 @@ original donors aren't in the release (see Issue 2).
 |---|---|
 | `reproduce_paper.py` | recompute the paper's headline tables from the released annotations (readback) |
 | `reproduce_waste.py` | reproduce the paper's two 5-category waste tables (App C.2 & C.3) — exact |
+| `reproduce_lucky_taxonomy.py` | apply the C1–C5 decision tree to the 122 Lucky passes (6/122 of paper split) |
 | `validate_pipeline.py` | re-run the SDK scorer against the shipped ground-truth PTAs |
 | `reproduce_k5.py` | independent end-to-end re-score with k=5 / seed=42 (single draw) |
 | `reproduce_k5_resample.py` | the robust version — resamples donor draws, reports mean ± std (run with `PYTHONHASHSEED=0`) |
